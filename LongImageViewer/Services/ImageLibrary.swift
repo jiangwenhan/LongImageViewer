@@ -75,8 +75,27 @@ final class ImageLibrary {
     sortOption.sort(documents)
   }
 
+  var hasStandaloneDocuments: Bool {
+    documents.contains { $0.sourceFolderID == nil }
+  }
+
   var folderDisplayNames: [String] {
     folders.map(\.displayName)
+  }
+
+  func documents(in folderID: UUID?) -> [ImageDocument] {
+    sortOption.sort(
+      documents.filter { $0.sourceFolderID == folderID }
+    )
+  }
+
+  func imageCount(in folderID: UUID?) -> Int {
+    documents.lazy.filter { $0.sourceFolderID == folderID }.count
+  }
+
+  func folderID(for url: URL) -> UUID? {
+    let path = url.standardizedFileURL.path
+    return folders.first { $0.pathHint == path }?.id
   }
 
   var materializedTileCount: Int {
@@ -485,6 +504,46 @@ final class ImageLibrary {
     importQueue.async { [weak self] in
       guard let self else { return }
       self.removeDirectories(for: oldDocuments)
+      DispatchQueue.main.async {
+        completion(.success(()))
+      }
+    }
+  }
+
+  func removeCollection(
+    folderID: UUID?,
+    completion: @escaping (Result<Void, Error>) -> Void
+  ) {
+    let removedDocuments = documents.filter {
+      $0.sourceFolderID == folderID
+    }
+    let previousDocuments = documents
+    let previousFolders = folders
+    let nextDocuments = documents.filter {
+      $0.sourceFolderID != folderID
+    }
+    let nextFolders: [ImageFolder]
+    if let folderID {
+      nextFolders = folders.filter { $0.id != folderID }
+    } else {
+      nextFolders = folders
+    }
+
+    do {
+      try saveManifest(nextDocuments)
+      try saveFolders(nextFolders)
+    } catch {
+      try? saveManifest(previousDocuments)
+      try? saveFolders(previousFolders)
+      completion(.failure(error))
+      return
+    }
+
+    documents = nextDocuments
+    folders = nextFolders
+    importQueue.async { [weak self] in
+      guard let self else { return }
+      self.removeDirectories(for: removedDocuments)
       DispatchQueue.main.async {
         completion(.success(()))
       }

@@ -15,6 +15,7 @@
 		B10000000000000000000006 /* ViewerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000006 /* ViewerViewController.swift */; };
 		B10000000000000000000007 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000007 /* Assets.xcassets */; };
 		B10000000000000000000008 /* ProcessMemoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000009 /* ProcessMemoryMonitor.swift */; };
+		B10000000000000000000009 /* FolderSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000010 /* FolderSidebarView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,6 +28,7 @@
 		A10000000000000000000007 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A10000000000000000000008 /* LongImageViewer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LongImageViewer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A10000000000000000000009 /* ProcessMemoryMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMemoryMonitor.swift; sourceTree = "<group>"; };
+		A10000000000000000000010 /* FolderSidebarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderSidebarView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -83,6 +85,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000005 /* ImageTileCell.swift */,
+				A10000000000000000000010 /* FolderSidebarView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -180,6 +183,7 @@
 				B10000000000000000000005 /* ImageTileCell.swift in Sources */,
 				B10000000000000000000006 /* ViewerViewController.swift in Sources */,
 				B10000000000000000000008 /* ProcessMemoryMonitor.swift in Sources */,
+				B10000000000000000000009 /* FolderSidebarView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

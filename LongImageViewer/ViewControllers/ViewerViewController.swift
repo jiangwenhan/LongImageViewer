@@ -7,6 +7,11 @@ final class ViewerViewController: UIViewController {
     case folder
   }
 
+  private enum SelectionStorage {
+    static let folderKey = "selectedFolderID"
+    static let standaloneValue = "__standalone__"
+  }
+
   private let tileOverlap = 1 / UIScreen.main.scale
   private let library = ImageLibrary.shared
   private var documents: [ImageDocument] = []
@@ -18,6 +23,10 @@ final class ViewerViewController: UIViewController {
   private var memoryTimer: Timer?
   private var isSynchronizingFolders = false
   private var prefetchRequests: [IndexPath: ImageRequestToken] = [:]
+  private var selectedFolderID: UUID?
+  private var selectsStandaloneFolder = false
+  private var isSidebarVisible = false
+  private var sidebarWidthConstraint: NSLayoutConstraint?
 
   #if DEBUG
     private var didProcessSimulatorFixtures = false
@@ -30,6 +39,7 @@ final class ViewerViewController: UIViewController {
     private var smokeTestInitialTileCount = 0
     private var smokeTestPeakMemoryBytes: UInt64 = 0
     private var smokeTestDirectorySyncDuration: TimeInterval = 0
+    private var didHandleDebugSidebarArguments = false
   #endif
 
   private lazy var collectionView: UICollectionView = {
@@ -194,12 +204,28 @@ final class ViewerViewController: UIViewController {
     return indicator
   }()
 
+  private let sidebarDimmingView: UIView = {
+    let view = UIView()
+    view.backgroundColor = .black
+    view.alpha = 0
+    view.isHidden = true
+    view.translatesAutoresizingMaskIntoConstraints = false
+    return view
+  }()
+
+  private let folderSidebarView: FolderSidebarView = {
+    let view = FolderSidebarView()
+    view.translatesAutoresizingMaskIntoConstraints = false
+    return view
+  }()
+
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = .black
     setupViews()
     setupActions()
     startMemoryUpdates()
+    restoreFolderSelection()
     reloadLibrary(preservingPage: false)
     NotificationCenter.default.addObserver(
       self,
@@ -217,6 +243,17 @@ final class ViewerViewController: UIViewController {
   override func viewDidLayoutSubviews() {
     super.viewDidLayoutSubviews()
 
+    let sidebarWidth = min(view.bounds.width * 0.84, 360)
+    if sidebarWidthConstraint?.constant != sidebarWidth {
+      sidebarWidthConstraint?.constant = sidebarWidth
+      if !isSidebarVisible {
+        folderSidebarView.transform = CGAffineTransform(
+          translationX: -sidebarWidth,
+          y: 0
+        )
+      }
+    }
+
     let width = collectionView.bounds.width
     guard width > 0, abs(width - lastLaidOutWidth) > 0.5 else {
       return
@@ -232,6 +269,7 @@ final class ViewerViewController: UIViewController {
 
     #if DEBUG
       importSimulatorFixturesIfRequested()
+      handleDebugSidebarArgumentsIfNeeded()
     #endif
   }
 
@@ -260,7 +298,14 @@ final class ViewerViewController: UIViewController {
     emptyStateView.addSubview(emptySubtitleLabel)
     emptyStateView.addSubview(emptyImportButton)
     view.addSubview(emptyStateView)
+    view.addSubview(sidebarDimmingView)
+    view.addSubview(folderSidebarView)
     view.bringSubviewToFront(activityIndicator)
+
+    let sidebarWidthConstraint = folderSidebarView.widthAnchor.constraint(
+      equalToConstant: 340
+    )
+    self.sidebarWidthConstraint = sidebarWidthConstraint
 
     NSLayoutConstraint.activate([
       collectionView.leadingAnchor.constraint(
@@ -396,6 +441,26 @@ final class ViewerViewController: UIViewController {
         equalTo: emptyStateView.bottomAnchor
       ),
 
+      sidebarDimmingView.leadingAnchor.constraint(
+        equalTo: view.leadingAnchor
+      ),
+      sidebarDimmingView.trailingAnchor.constraint(
+        equalTo: view.trailingAnchor
+      ),
+      sidebarDimmingView.topAnchor.constraint(equalTo: view.topAnchor),
+      sidebarDimmingView.bottomAnchor.constraint(
+        equalTo: view.bottomAnchor
+      ),
+
+      folderSidebarView.leadingAnchor.constraint(
+        equalTo: view.leadingAnchor
+      ),
+      folderSidebarView.topAnchor.constraint(equalTo: view.topAnchor),
+      folderSidebarView.bottomAnchor.constraint(
+        equalTo: view.bottomAnchor
+      ),
+      sidebarWidthConstraint,
+
       activityIndicator.centerXAnchor.constraint(
         equalTo: view.centerXAnchor
       ),
@@ -403,9 +468,16 @@ final class ViewerViewController: UIViewController {
         equalTo: view.centerYAnchor
       ),
     ])
+
+    folderSidebarView.transform = CGAffineTransform(
+      translationX: -340,
+      y: 0
+    )
   }
 
   private func setupActions() {
+    folderSidebarView.delegate = self
+
     addButton.addTarget(
       self,
       action: #selector(sourceButtonTapped),
@@ -418,6 +490,27 @@ final class ViewerViewController: UIViewController {
     )
     sortButton.menu = makeSortMenu()
     sortButton.showsMenuAsPrimaryAction = true
+
+    let openSwipe = UISwipeGestureRecognizer(
+      target: self,
+      action: #selector(openSidebarSwipeRecognized)
+    )
+    openSwipe.direction = .right
+    openSwipe.cancelsTouchesInView = false
+    view.addGestureRecognizer(openSwipe)
+
+    let closeSwipe = UISwipeGestureRecognizer(
+      target: self,
+      action: #selector(closeSidebarSwipeRecognized)
+    )
+    closeSwipe.direction = .left
+    sidebarDimmingView.addGestureRecognizer(closeSwipe)
+
+    let dismissTap = UITapGestureRecognizer(
+      target: self,
+      action: #selector(sidebarDimmingViewTapped)
+    )
+    sidebarDimmingView.addGestureRecognizer(dismissTap)
   }
 
   private func makeSortMenu() -> UIMenu {
@@ -450,6 +543,16 @@ final class ViewerViewController: UIViewController {
       message: folderStatusMessage,
       preferredStyle: .actionSheet
     )
+    if !sidebarItems.isEmpty {
+      sheet.addAction(
+        UIAlertAction(
+          title: "管理已加载文件夹",
+          style: .default
+        ) { [weak self] _ in
+          self?.showFolderSidebar()
+        }
+      )
+    }
     sheet.addAction(
       UIAlertAction(
         title: "浏览图片文件夹",
@@ -518,6 +621,170 @@ final class ViewerViewController: UIViewController {
     return "已添加：\(library.folderDisplayNames.joined(separator: "、"))"
   }
 
+  private var sidebarItems: [FolderSidebarItem] {
+    var items = library.folders.map { folder in
+      FolderSidebarItem(
+        folderID: folder.id,
+        title: folder.displayName,
+        imageCount: library.imageCount(in: folder.id),
+        isAvailable: true
+      )
+    }
+    if library.hasStandaloneDocuments {
+      items.append(
+        FolderSidebarItem(
+          folderID: nil,
+          title: "手动导入",
+          imageCount: library.imageCount(in: nil),
+          isAvailable: true
+        )
+      )
+    }
+    return items
+  }
+
+  private func restoreFolderSelection() {
+    let savedValue = UserDefaults.standard.string(
+      forKey: SelectionStorage.folderKey
+    )
+    if savedValue == SelectionStorage.standaloneValue,
+      library.hasStandaloneDocuments
+    {
+      selectedFolderID = nil
+      selectsStandaloneFolder = true
+      return
+    }
+    if let savedValue,
+      let folderID = UUID(uuidString: savedValue),
+      library.folders.contains(where: { $0.id == folderID })
+    {
+      selectedFolderID = folderID
+      selectsStandaloneFolder = false
+      return
+    }
+    selectDefaultCollection()
+  }
+
+  private func selectDefaultCollection() {
+    if let firstFolder = library.folders.first {
+      selectedFolderID = firstFolder.id
+      selectsStandaloneFolder = false
+    } else if library.hasStandaloneDocuments {
+      selectedFolderID = nil
+      selectsStandaloneFolder = true
+    } else {
+      selectedFolderID = nil
+      selectsStandaloneFolder = false
+    }
+    persistFolderSelection()
+  }
+
+  private func persistFolderSelection() {
+    let value: String?
+    if selectsStandaloneFolder {
+      value = SelectionStorage.standaloneValue
+    } else {
+      value = selectedFolderID?.uuidString
+    }
+    UserDefaults.standard.set(
+      value,
+      forKey: SelectionStorage.folderKey
+    )
+  }
+
+  private func ensureFolderSelectionIsValid() {
+    if selectsStandaloneFolder {
+      if !library.hasStandaloneDocuments {
+        selectDefaultCollection()
+      }
+      return
+    }
+    if let selectedFolderID {
+      if !library.folders.contains(where: { $0.id == selectedFolderID }) {
+        selectDefaultCollection()
+      }
+    } else {
+      selectDefaultCollection()
+    }
+  }
+
+  private func updateFolderSidebar() {
+    folderSidebarView.update(
+      items: sidebarItems,
+      selectedFolderID: selectedFolderID,
+      selectsStandaloneFolder: selectsStandaloneFolder
+    )
+  }
+
+  private var selectedCollectionTitle: String {
+    if selectsStandaloneFolder {
+      return "手动导入"
+    }
+    return library.folders.first {
+      $0.id == selectedFolderID
+    }?.displayName ?? "图片文件夹"
+  }
+
+  @objc private func openSidebarSwipeRecognized() {
+    showFolderSidebar()
+  }
+
+  @objc private func closeSidebarSwipeRecognized() {
+    hideFolderSidebar()
+  }
+
+  @objc private func sidebarDimmingViewTapped() {
+    hideFolderSidebar()
+  }
+
+  private func showFolderSidebar() {
+    updateFolderSidebar()
+    guard !sidebarItems.isEmpty, !isSidebarVisible else {
+      return
+    }
+    isSidebarVisible = true
+    sidebarDimmingView.isHidden = false
+    view.layoutIfNeeded()
+    UIView.animate(
+      withDuration: 0.25,
+      delay: 0,
+      options: [.curveEaseOut, .beginFromCurrentState]
+    ) {
+      self.sidebarDimmingView.alpha = 0.38
+      self.folderSidebarView.transform = .identity
+    }
+  }
+
+  private func hideFolderSidebar() {
+    guard isSidebarVisible else { return }
+    isSidebarVisible = false
+    let width = sidebarWidthConstraint?.constant ?? 340
+    UIView.animate(
+      withDuration: 0.22,
+      delay: 0,
+      options: [.curveEaseIn, .beginFromCurrentState]
+    ) {
+      self.sidebarDimmingView.alpha = 0
+      self.folderSidebarView.transform = CGAffineTransform(
+        translationX: -width,
+        y: 0
+      )
+    } completion: { _ in
+      self.sidebarDimmingView.isHidden = true
+    }
+  }
+
+  private func selectCollection(_ item: FolderSidebarItem) {
+    selectedFolderID = item.folderID
+    selectsStandaloneFolder = item.folderID == nil
+    currentPageIndex = 0
+    persistFolderSelection()
+    ImagePipeline.shared.clearCache()
+    reloadLibrary(preservingPage: false)
+    collectionView.setContentOffset(.zero, animated: false)
+    hideFolderSidebar()
+  }
+
   private func startMemoryUpdates() {
     updateMemoryLabel()
     let timer = Timer(
@@ -565,12 +832,15 @@ final class ViewerViewController: UIViewController {
 
       switch result {
       case .success(let summary):
+        self.ensureFolderSelectionIsValid()
         if summary.addedCount > 0
           || summary.updatedCount > 0
           || summary.removedCount > 0
         {
           ImagePipeline.shared.clearCache()
           self.reloadLibrary(preservingPage: true)
+        } else {
+          self.updateFolderSidebar()
         }
         if showResult {
           self.presentFolderSyncSummary(
@@ -666,8 +936,15 @@ final class ViewerViewController: UIViewController {
     }
     prefetchRequests.removeAll()
 
+    ensureFolderSelectionIsValid()
     let previousPage = preservingPage ? currentPageIndex : 0
-    documents = library.sortedDocuments
+    if selectsStandaloneFolder {
+      documents = library.documents(in: nil)
+    } else if let selectedFolderID {
+      documents = library.documents(in: selectedFolderID)
+    } else {
+      documents = []
+    }
     displayTiles = documents.enumerated().flatMap {
       pageIndex,
       document in
@@ -688,14 +965,23 @@ final class ViewerViewController: UIViewController {
     collectionView.reloadData()
     updateEmptyState()
     updateOverlay()
+    updateFolderSidebar()
   }
 
   private func updateEmptyState() {
     let isEmpty = documents.isEmpty
     emptyStateView.isHidden = !isEmpty
+    emptyTitleLabel.text =
+      sidebarItems.isEmpty
+      ? "还没有图片文件夹"
+      : "\(selectedCollectionTitle) 暂无图片"
+    emptySubtitleLabel.text =
+      sidebarItems.isEmpty
+      ? "浏览“我的 iPhone”、iCloud Drive\n或 Mac 本地目录中的图片"
+      : "右划打开侧边栏切换文件夹\n或通过“来源”同步当前目录"
     overlayView.isHidden = false
     sortButton.isHidden = isEmpty
-    addButton.isHidden = isEmpty
+    addButton.isHidden = false
   }
 
   private func rebuildPageOffsets() {
@@ -796,46 +1082,240 @@ final class ViewerViewController: UIViewController {
       }
       didProcessSimulatorFixtures = true
       let syncStartTime = CACurrentMediaTime()
+      let fixtureDirectories = simulatorFixtureDirectories(
+        arguments: arguments
+      )
 
-      guard documents.isEmpty else {
-        library.syncFolders { [weak self] result in
-          guard let self else { return }
-          self.smokeTestDirectorySyncDuration =
-            CACurrentMediaTime() - syncStartTime
-          if case .success = result {
-            ImagePipeline.shared.clearCache()
-            self.reloadLibrary(preservingPage: false)
-          }
-          self.scheduleSmokeTestIfRequested()
-        }
+      setImporting(true)
+      addSimulatorFixtureFolders(
+        fixtureDirectories,
+        index: 0,
+        startedAt: syncStartTime
+      )
+    }
+
+    private func simulatorFixtureDirectories(
+      arguments: [String]
+    ) -> [URL] {
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      var directories = [
+        documentsURL.appendingPathComponent(
+          "SimulatorFixtures",
+          isDirectory: true
+        )
+      ]
+      if arguments.contains("--import-secondary-simulator-fixture") {
+        directories.append(
+          documentsURL.appendingPathComponent(
+            "SimulatorFixturesSecondary",
+            isDirectory: true
+          )
+        )
+      }
+      return directories
+    }
+
+    private func addSimulatorFixtureFolders(
+      _ directories: [URL],
+      index: Int,
+      startedAt: CFTimeInterval
+    ) {
+      guard index < directories.count else {
+        smokeTestDirectorySyncDuration =
+          CACurrentMediaTime() - startedAt
+        setImporting(false)
+        selectPrimaryFixtureFolder(directories)
+        reloadLibrary(preservingPage: false)
+        scheduleSmokeTestIfRequested()
         return
       }
 
-      let fixtureDirectory = FileManager.default.urls(
-        for: .documentDirectory,
-        in: .userDomainMask
-      )[0].appendingPathComponent(
-        "SimulatorFixtures",
-        isDirectory: true
-      )
-      setImporting(true)
-      library.addFolder(from: fixtureDirectory) { [weak self] result in
+      library.addFolder(from: directories[index]) {
+        [weak self] result in
         guard let self else { return }
-        self.smokeTestDirectorySyncDuration =
-          CACurrentMediaTime() - syncStartTime
-        self.setImporting(false)
-
         switch result {
         case .success:
-          self.reloadLibrary(preservingPage: false)
-          self.scheduleSmokeTestIfRequested()
+          self.addSimulatorFixtureFolders(
+            directories,
+            index: index + 1,
+            startedAt: startedAt
+          )
         case .failure(let error):
+          self.setImporting(false)
           self.writeSmokeTestResult([
             "status": "import-failed",
             "error": error.localizedDescription,
           ])
         }
       }
+    }
+
+    private func selectPrimaryFixtureFolder(
+      _ directories: [URL]
+    ) {
+      guard
+        let primaryDirectory = directories.first,
+        let folderID = library.folderID(for: primaryDirectory)
+      else {
+        return
+      }
+      selectedFolderID = folderID
+      selectsStandaloneFolder = false
+      persistFolderSelection()
+    }
+
+    private func handleDebugSidebarArgumentsIfNeeded() {
+      let arguments = ProcessInfo.processInfo.arguments
+      guard !didHandleDebugSidebarArguments else { return }
+      didHandleDebugSidebarArguments = true
+
+      if arguments.contains("--select-secondary-simulator-folder") {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 2
+        ) { [weak self] in
+          self?.selectSecondaryFixtureFolderForTesting(
+            showsSidebar: arguments.contains(
+              "--show-folder-sidebar"
+            )
+          )
+        }
+      } else if arguments.contains("--show-folder-sidebar") {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 2
+        ) { [weak self] in
+          self?.showFolderSidebar()
+        }
+      }
+
+      if arguments.contains("--debug-delete-secondary-folder") {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 2
+        ) { [weak self] in
+          self?.deleteSecondaryFixtureFolderForTesting()
+        }
+      }
+    }
+
+    private func selectSecondaryFixtureFolderForTesting(
+      showsSidebar: Bool
+    ) {
+      let directories = simulatorFixtureDirectories(
+        arguments: [
+          "--import-secondary-simulator-fixture"
+        ]
+      )
+      guard
+        directories.count > 1,
+        let folderID = library.folderID(for: directories[1]),
+        let item = sidebarItems.first(
+          where: { $0.folderID == folderID }
+        )
+      else {
+        return
+      }
+
+      selectCollection(item)
+      writeFolderSelectionResult([
+        "status": "passed",
+        "selectedFolderTitle": selectedCollectionTitle,
+        "selectedDocumentCount": documents.count,
+        "pageCount": documents.count,
+        "sidebarItemCount": sidebarItems.count,
+      ])
+      if showsSidebar {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 0.3
+        ) { [weak self] in
+          self?.showFolderSidebar()
+        }
+      }
+    }
+
+    private func deleteSecondaryFixtureFolderForTesting() {
+      let directories = simulatorFixtureDirectories(
+        arguments: [
+          "--import-secondary-simulator-fixture"
+        ]
+      )
+      guard
+        directories.count > 1,
+        let folderID = library.folderID(for: directories[1])
+      else {
+        writeFolderManagementResult([
+          "status": "secondary-folder-not-found"
+        ])
+        return
+      }
+
+      library.removeCollection(folderID: folderID) {
+        [weak self] result in
+        guard let self else { return }
+        switch result {
+        case .success:
+          self.ensureFolderSelectionIsValid()
+          self.reloadLibrary(preservingPage: false)
+          self.writeFolderManagementResult([
+            "status": "passed",
+            "folderCount": self.library.folders.count,
+            "sidebarItemCount": self.sidebarItems.count,
+            "selectedDocumentCount": self.documents.count,
+            "sourceFolderStillExists":
+              FileManager.default.fileExists(
+                atPath: directories[1].path
+              ),
+          ])
+        case .failure(let error):
+          self.writeFolderManagementResult([
+            "status": "delete-failed",
+            "error": error.localizedDescription,
+          ])
+        }
+      }
+    }
+
+    private func writeFolderManagementResult(
+      _ result: [String: Any]
+    ) {
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "folder-management-result.json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
+    }
+
+    private func writeFolderSelectionResult(
+      _ result: [String: Any]
+    ) {
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "folder-selection-result.json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
     }
 
     private func scheduleSmokeTestIfRequested() {
@@ -933,6 +1413,8 @@ final class ViewerViewController: UIViewController {
         "contentHeight": round(collectionView.contentSize.height),
         "sortOrders": sortOrders,
         "folderCount": library.folders.count,
+        "sidebarItemCount": sidebarItems.count,
+        "selectedFolderTitle": selectedCollectionTitle,
         "usedMemoryBytes": ProcessMemoryMonitor.usedBytes ?? 0,
         "peakMemoryBytes": smokeTestPeakMemoryBytes,
         "initialMaterializedTileCount": smokeTestInitialTileCount,
@@ -1017,6 +1499,66 @@ extension ViewerViewController:
   }
 }
 
+extension ViewerViewController: FolderSidebarViewDelegate {
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didSelect item: FolderSidebarItem
+  ) {
+    selectCollection(item)
+  }
+
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didRequestDelete item: FolderSidebarItem
+  ) {
+    let message: String
+    if item.folderID == nil {
+      message = "将清理“手动导入”的图片副本和缓存。"
+    } else {
+      message = "将移除该文件夹及其缓存，不会删除源目录中的图片。"
+    }
+    let alert = UIAlertController(
+      title: "移除“\(item.title)”？",
+      message: message,
+      preferredStyle: .alert
+    )
+    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(
+      UIAlertAction(title: "移除", style: .destructive) {
+        [weak self] _ in
+        guard let self else { return }
+        let removesCurrentCollection =
+          item.folderID == self.selectedFolderID
+          && (item.folderID != nil || self.selectsStandaloneFolder)
+        self.library.removeCollection(
+          folderID: item.folderID
+        ) { result in
+          switch result {
+          case .success:
+            if removesCurrentCollection {
+              self.selectDefaultCollection()
+            }
+            ImagePipeline.shared.clearCache()
+            self.reloadLibrary(preservingPage: false)
+            if self.sidebarItems.isEmpty {
+              self.hideFolderSidebar()
+            } else {
+              self.updateFolderSidebar()
+            }
+          case .failure(let error):
+            self.presentError(error)
+          }
+        }
+      }
+    )
+    present(alert, animated: true)
+  }
+
+  func folderSidebarDidRequestClose(_ sidebar: FolderSidebarView) {
+    hideFolderSidebar()
+  }
+}
+
 extension ViewerViewController:
   UICollectionViewDataSourcePrefetching
 {
@@ -1068,13 +1610,19 @@ extension ViewerViewController: UIDocumentPickerDelegate {
     guard !urls.isEmpty else { return }
 
     if pickerMode == .folder {
+      let selectedURL = urls[0]
       setImporting(true)
-      library.addFolder(from: urls[0]) { [weak self] result in
+      library.addFolder(from: selectedURL) { [weak self] result in
         guard let self else { return }
         self.setImporting(false)
 
         switch result {
         case .success(let summary):
+          if let folderID = self.library.folderID(for: selectedURL) {
+            self.selectedFolderID = folderID
+            self.selectsStandaloneFolder = false
+            self.persistFolderSelection()
+          }
           ImagePipeline.shared.clearCache()
           self.reloadLibrary(preservingPage: false)
           self.presentFolderSyncSummary(
@@ -1095,6 +1643,9 @@ extension ViewerViewController: UIDocumentPickerDelegate {
 
       switch result {
       case .success(let summary):
+        self.selectedFolderID = nil
+        self.selectsStandaloneFolder = true
+        self.persistFolderSelection()
         self.reloadLibrary(preservingPage: false)
 
         if let firstImported = summary.importedDocuments.first,

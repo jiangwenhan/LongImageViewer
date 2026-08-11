@@ -1,15 +1,17 @@
 {
   "averageFPS" : 60,
   "contentHeight" : 15994,
-  "directorySyncDurationSeconds" : 0.10000000000000001,
+  "directorySyncDurationSeconds" : 0.17999999999999999,
   "documentCount" : 6,
-  "durationSeconds" : 18.010000000000002,
+  "durationSeconds" : 18,
   "expectedTileCount" : 30,
   "finalMaterializedTileCount" : 30,
-  "folderCount" : 1,
+  "folderCount" : 2,
   "frameCount" : 1081,
   "initialMaterializedTileCount" : 3,
-  "peakMemoryBytes" : 115903728,
+  "peakMemoryBytes" : 118525192,
+  "selectedFolderTitle" : "SimulatorFixtures",
+  "sidebarItemCount" : 2,
   "slowFrameCount" : 0,
   "sortOrders" : {
     "creationAscending" : [
@@ -46,6 +48,6 @@
     ]
   },
   "status" : "passed",
-  "usedMemoryBytes" : 93588744,
+  "usedMemoryBytes" : 95849760,
   "visitedPageCount" : 6
 }

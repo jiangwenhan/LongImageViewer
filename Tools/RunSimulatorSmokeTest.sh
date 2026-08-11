@@ -95,16 +95,23 @@ DATA_CONTAINER="$(
   xcrun simctl get_app_container "$DEVICE_UDID" "$BUNDLE_ID" data
 )"
 FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorFixtures"
+SECONDARY_FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorFixturesSecondary"
 mkdir -p "$FIXTURE_DIR"
+mkdir -p "$SECONDARY_FIXTURE_DIR"
 find "$ROOT_DIR/TestImages" -maxdepth 1 -type f \
   \( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.heic' \) \
   -exec cp -p {} "$FIXTURE_DIR/" \;
+cp -p \
+  "$ROOT_DIR/TestImages/01_narrow_short_640x1800.jpg" \
+  "$ROOT_DIR/TestImages/02_phone_medium_1284x5000.jpg" \
+  "$SECONDARY_FIXTURE_DIR/"
 
 xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
   --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
   --auto-scroll-smoke-test
 
 sleep 6
@@ -135,7 +142,9 @@ jq -e '
   .status == "passed"
   and .documentCount == 6
   and .visitedPageCount == 6
-  and .folderCount == 1
+  and .folderCount == 2
+  and .sidebarItemCount == 2
+  and .selectedFolderTitle == "SimulatorFixtures"
   and .usedMemoryBytes > 0
   and .peakMemoryBytes < 268435456
   and .directorySyncDurationSeconds < 5
@@ -159,6 +168,76 @@ jq -e '
   ]
 ' "$ARTIFACTS_DIR/smoke-test-result.json" >/dev/null
 
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
+  --show-folder-sidebar
+sleep 3
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/folder-sidebar.png"
+
+FOLDER_SELECTION_RESULT="$DATA_CONTAINER/Documents/folder-selection-result.json"
+rm -f "$FOLDER_SELECTION_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
+  --select-secondary-simulator-folder \
+  --show-folder-sidebar
+
+for _ in {1..30}; do
+  if [[ -f "$FOLDER_SELECTION_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .selectedFolderTitle == "SimulatorFixturesSecondary"
+  and .selectedDocumentCount == 2
+  and .pageCount == 2
+  and .sidebarItemCount == 2
+' "$FOLDER_SELECTION_RESULT" >/dev/null
+cp "$FOLDER_SELECTION_RESULT" \
+  "$ARTIFACTS_DIR/folder-selection-result.json"
+sleep 1
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/folder-sidebar-secondary.png"
+
+FOLDER_MANAGEMENT_RESULT="$DATA_CONTAINER/Documents/folder-management-result.json"
+rm -f "$FOLDER_MANAGEMENT_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
+  --debug-delete-secondary-folder
+
+for _ in {1..30}; do
+  if [[ -f "$FOLDER_MANAGEMENT_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .folderCount == 1
+  and .sidebarItemCount == 1
+  and .selectedDocumentCount == 6
+  and .sourceFolderStillExists == true
+' "$FOLDER_MANAGEMENT_RESULT" >/dev/null
+cp "$FOLDER_MANAGEMENT_RESULT" \
+  "$ARTIFACTS_DIR/folder-management-result.json"
+test -f "$SECONDARY_FIXTURE_DIR/01_narrow_short_640x1800.jpg"
+
 REMOVED_FIXTURE="$FIXTURE_DIR/20_wide_short_1800x1500.jpg"
 rm "$REMOVED_FIXTURE"
 rm "$RESULT_PATH"
@@ -167,6 +246,7 @@ xcrun simctl launch \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
   --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
   --auto-scroll-smoke-test
 
 for _ in {1..90}; do
@@ -182,7 +262,8 @@ jq -e '
   .status == "passed"
   and .documentCount == 5
   and .visitedPageCount == 5
-  and .folderCount == 1
+  and .folderCount == 2
+  and .sidebarItemCount == 2
 ' "$RESULT_PATH" >/dev/null
 cp "$RESULT_PATH" "$ARTIFACTS_DIR/folder-removal-result.json"
 cp -p "$ROOT_DIR/TestImages/20_wide_short_1800x1500.jpg" "$REMOVED_FIXTURE"
@@ -192,7 +273,8 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
-  --import-simulator-fixtures
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture
 sleep 2
 xcrun simctl io "$DEVICE_UDID" screenshot \
   "$ARTIFACTS_DIR/first-page.png"

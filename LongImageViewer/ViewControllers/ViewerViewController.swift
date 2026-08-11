@@ -2,6 +2,8 @@ import UIKit
 import UniformTypeIdentifiers
 
 final class ViewerViewController: UIViewController {
+  var onPasswordSettingsRequested: (() -> Void)?
+
   private enum PickerMode {
     case images
     case folder
@@ -25,6 +27,8 @@ final class ViewerViewController: UIViewController {
   private var prefetchRequests: [IndexPath: ImageRequestToken] = [:]
   private var selectedFolderID: UUID?
   private var selectsStandaloneFolder = false
+  private var pendingFolderURLs: [URL] = []
+  private var isSelectingFolderBatch = false
   private var isSidebarVisible = false
   private var sidebarWidthConstraint: NSLayoutConstraint?
 
@@ -555,10 +559,10 @@ final class ViewerViewController: UIViewController {
     }
     sheet.addAction(
       UIAlertAction(
-        title: "浏览图片文件夹",
+        title: "批量添加图片文件夹",
         style: .default
       ) { [weak self] _ in
-        self?.presentFolderPicker()
+        self?.beginFolderBatchSelection()
       }
     )
     sheet.addAction(
@@ -577,6 +581,14 @@ final class ViewerViewController: UIViewController {
         self?.syncFolders(showResult: true)
       }
     )
+    sheet.addAction(
+      UIAlertAction(
+        title: "密码与锁定",
+        style: .default
+      ) { [weak self] _ in
+        self?.onPasswordSettingsRequested?()
+      }
+    )
     sheet.addAction(UIAlertAction(title: "取消", style: .cancel))
     sheet.popoverPresentationController?.sourceView = addButton
     sheet.popoverPresentationController?.sourceRect = addButton.bounds
@@ -584,7 +596,44 @@ final class ViewerViewController: UIViewController {
   }
 
   @objc private func selectFolderTapped() {
-    presentFolderPicker()
+    beginFolderBatchSelection()
+  }
+
+  private func beginFolderBatchSelection() {
+    pendingFolderURLs = []
+    isSelectingFolderBatch = true
+
+    #if targetEnvironment(macCatalyst)
+      presentFolderPicker()
+    #else
+      let alert = UIAlertController(
+        title: "批量添加图片文件夹",
+        message:
+          "iPhone 系统每次只授权一个文件夹。选择后返回 App，点击“继续选择”添加下一个；全部选完后再统一导入。",
+        preferredStyle: .alert
+      )
+      alert.addAction(
+        UIAlertAction(
+          title: "开始选择",
+          style: .default
+        ) { [weak self] _ in
+          self?.presentFolderPicker()
+        }
+      )
+      alert.addAction(
+        UIAlertAction(
+          title: "取消",
+          style: .cancel
+        ) { [weak self] _ in
+          self?.resetFolderBatchSelection()
+        }
+      )
+      DispatchQueue.main.asyncAfter(
+        deadline: .now() + 0.2
+      ) { [weak self] in
+        self?.present(alert, animated: true)
+      }
+    #endif
   }
 
   private func presentImagePicker() {
@@ -604,7 +653,11 @@ final class ViewerViewController: UIViewController {
       forOpeningContentTypes: [.folder],
       asCopy: false
     )
-    picker.allowsMultipleSelection = false
+    #if targetEnvironment(macCatalyst)
+      picker.allowsMultipleSelection = true
+    #else
+      picker.allowsMultipleSelection = false
+    #endif
     picker.delegate = self
     picker.directoryURL =
       FileManager.default.urls(
@@ -612,6 +665,101 @@ final class ViewerViewController: UIViewController {
         in: .userDomainMask
       ).first
     present(picker, animated: true)
+  }
+
+  private func appendPendingFolders(_ urls: [URL]) {
+    var knownPaths = Set(
+      pendingFolderURLs.map { $0.standardizedFileURL.path }
+    )
+    for url in urls {
+      let path = url.standardizedFileURL.path
+      if knownPaths.insert(path).inserted {
+        pendingFolderURLs.append(url)
+      }
+    }
+  }
+
+  private func presentFolderBatchProgress() {
+    guard isSelectingFolderBatch, !pendingFolderURLs.isEmpty else {
+      return
+    }
+
+    let folderNames = pendingFolderURLs.map(\.lastPathComponent)
+    let message =
+      "已选择 \(folderNames.count) 个文件夹：\n"
+      + folderNames.joined(separator: "\n")
+    let sheet = UIAlertController(
+      title: "继续选择文件夹？",
+      message: message,
+      preferredStyle: .actionSheet
+    )
+    sheet.addAction(
+      UIAlertAction(
+        title: "继续选择",
+        style: .default
+      ) { [weak self] _ in
+        self?.presentFolderPicker()
+      }
+    )
+    sheet.addAction(
+      UIAlertAction(
+        title: "导入 \(folderNames.count) 个文件夹",
+        style: .default
+      ) { [weak self] _ in
+        self?.finishFolderBatchSelection()
+      }
+    )
+    sheet.addAction(
+      UIAlertAction(
+        title: "取消本次添加",
+        style: .cancel
+      ) { [weak self] _ in
+        self?.resetFolderBatchSelection()
+      }
+    )
+    sheet.popoverPresentationController?.sourceView = addButton
+    sheet.popoverPresentationController?.sourceRect = addButton.bounds
+    present(sheet, animated: true)
+  }
+
+  private func finishFolderBatchSelection() {
+    let selectedURLs = pendingFolderURLs
+    resetFolderBatchSelection()
+    guard !selectedURLs.isEmpty else { return }
+
+    setImporting(true)
+    library.addFolders(from: selectedURLs) { [weak self] result in
+      guard let self else { return }
+      self.setImporting(false)
+
+      switch result {
+      case .success(let summary):
+        if
+          let firstSelectedURL = selectedURLs.first,
+          let folderID = self.library.folderID(for: firstSelectedURL)
+        {
+          self.selectedFolderID = folderID
+          self.selectsStandaloneFolder = false
+          self.persistFolderSelection()
+        }
+        ImagePipeline.shared.clearCache()
+        self.reloadLibrary(preservingPage: false)
+        self.presentFolderSyncSummary(
+          summary,
+          title:
+            selectedURLs.count == 1
+            ? "文件夹已添加"
+            : "已添加 \(selectedURLs.count) 个文件夹"
+        )
+      case .failure(let error):
+        self.presentError(error)
+      }
+    }
+  }
+
+  private func resetFolderBatchSelection() {
+    pendingFolderURLs = []
+    isSelectingFolderBatch = false
   }
 
   private var folderStatusMessage: String {
@@ -1087,11 +1235,25 @@ final class ViewerViewController: UIViewController {
       )
 
       setImporting(true)
-      addSimulatorFixtureFolders(
-        fixtureDirectories,
-        index: 0,
-        startedAt: syncStartTime
-      )
+      library.addFolders(from: fixtureDirectories) {
+        [weak self] result in
+        guard let self else { return }
+        self.smokeTestDirectorySyncDuration =
+          CACurrentMediaTime() - syncStartTime
+        self.setImporting(false)
+
+        switch result {
+        case .success:
+          self.selectPrimaryFixtureFolder(fixtureDirectories)
+          self.reloadLibrary(preservingPage: false)
+          self.scheduleSmokeTestIfRequested()
+        case .failure(let error):
+          self.writeSmokeTestResult([
+            "status": "import-failed",
+            "error": error.localizedDescription,
+          ])
+        }
+      }
     }
 
     private func simulatorFixtureDirectories(
@@ -1116,41 +1278,6 @@ final class ViewerViewController: UIViewController {
         )
       }
       return directories
-    }
-
-    private func addSimulatorFixtureFolders(
-      _ directories: [URL],
-      index: Int,
-      startedAt: CFTimeInterval
-    ) {
-      guard index < directories.count else {
-        smokeTestDirectorySyncDuration =
-          CACurrentMediaTime() - startedAt
-        setImporting(false)
-        selectPrimaryFixtureFolder(directories)
-        reloadLibrary(preservingPage: false)
-        scheduleSmokeTestIfRequested()
-        return
-      }
-
-      library.addFolder(from: directories[index]) {
-        [weak self] result in
-        guard let self else { return }
-        switch result {
-        case .success:
-          self.addSimulatorFixtureFolders(
-            directories,
-            index: index + 1,
-            startedAt: startedAt
-          )
-        case .failure(let error):
-          self.setImporting(false)
-          self.writeSmokeTestResult([
-            "status": "import-failed",
-            "error": error.localizedDescription,
-          ])
-        }
-      }
     }
 
     private func selectPrimaryFixtureFolder(
@@ -1197,6 +1324,26 @@ final class ViewerViewController: UIViewController {
           self?.deleteSecondaryFixtureFolderForTesting()
         }
       }
+
+      if arguments.contains("--show-folder-batch-progress") {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 2
+        ) { [weak self] in
+          self?.showFolderBatchProgressForTesting()
+        }
+      }
+    }
+
+    private func showFolderBatchProgressForTesting() {
+      let directories = simulatorFixtureDirectories(
+        arguments: [
+          "--import-secondary-simulator-fixture"
+        ]
+      )
+      resetFolderBatchSelection()
+      isSelectingFolderBatch = true
+      appendPendingFolders(directories)
+      presentFolderBatchProgress()
     }
 
     private func selectSecondaryFixtureFolderForTesting(
@@ -1610,28 +1757,11 @@ extension ViewerViewController: UIDocumentPickerDelegate {
     guard !urls.isEmpty else { return }
 
     if pickerMode == .folder {
-      let selectedURL = urls[0]
-      setImporting(true)
-      library.addFolder(from: selectedURL) { [weak self] result in
-        guard let self else { return }
-        self.setImporting(false)
-
-        switch result {
-        case .success(let summary):
-          if let folderID = self.library.folderID(for: selectedURL) {
-            self.selectedFolderID = folderID
-            self.selectsStandaloneFolder = false
-            self.persistFolderSelection()
-          }
-          ImagePipeline.shared.clearCache()
-          self.reloadLibrary(preservingPage: false)
-          self.presentFolderSyncSummary(
-            summary,
-            title: "文件夹已添加"
-          )
-        case .failure(let error):
-          self.presentError(error)
-        }
+      appendPendingFolders(urls)
+      DispatchQueue.main.asyncAfter(
+        deadline: .now() + 0.25
+      ) { [weak self] in
+        self?.presentFolderBatchProgress()
       }
       return
     }
@@ -1672,6 +1802,27 @@ extension ViewerViewController: UIDocumentPickerDelegate {
 
       case .failure(let error):
         self.presentError(error)
+      }
+    }
+  }
+
+  func documentPickerWasCancelled(
+    _ controller: UIDocumentPickerViewController
+  ) {
+    guard
+      pickerMode == .folder,
+      isSelectingFolderBatch
+    else {
+      return
+    }
+
+    if pendingFolderURLs.isEmpty {
+      resetFolderBatchSelection()
+    } else {
+      DispatchQueue.main.asyncAfter(
+        deadline: .now() + 0.25
+      ) { [weak self] in
+        self?.presentFolderBatchProgress()
       }
     }
   }

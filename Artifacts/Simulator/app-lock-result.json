@@ -1,0 +1,8 @@
+{
+  "expiredBackgroundRequiresPassword" : true,
+  "gracePeriodSeconds" : 180,
+  "hasPassword" : true,
+  "isLocked" : true,
+  "shortBackgroundRequiresPassword" : false,
+  "status" : "passed"
+}

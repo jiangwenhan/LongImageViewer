@@ -78,7 +78,6 @@ xcodebuild \
   -configuration Debug \
   -destination "platform=iOS Simulator,id=$DEVICE_UDID" \
   -derivedDataPath "$DERIVED_DATA" \
-  CODE_SIGNING_ALLOWED=NO \
   build
 
 APP_PATH="$DERIVED_DATA/Build/Products/Debug-iphonesimulator/LongImageViewer.app"
@@ -110,6 +109,7 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
+  --reset-app-password \
   --import-simulator-fixtures \
   --import-secondary-simulator-fixture \
   --auto-scroll-smoke-test
@@ -172,6 +172,7 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
+  --reset-app-password \
   --import-simulator-fixtures \
   --import-secondary-simulator-fixture \
   --show-folder-sidebar
@@ -185,6 +186,7 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
+  --reset-app-password \
   --import-simulator-fixtures \
   --import-secondary-simulator-fixture \
   --select-secondary-simulator-folder \
@@ -216,6 +218,7 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
+  --reset-app-password \
   --import-simulator-fixtures \
   --import-secondary-simulator-fixture \
   --debug-delete-secondary-folder
@@ -245,6 +248,7 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
+  --reset-app-password \
   --import-simulator-fixtures \
   --import-secondary-simulator-fixture \
   --auto-scroll-smoke-test
@@ -273,11 +277,90 @@ xcrun simctl launch \
   --terminate-running-process \
   "$DEVICE_UDID" \
   "$BUNDLE_ID" \
+  --reset-app-password \
   --import-simulator-fixtures \
   --import-secondary-simulator-fixture
 sleep 2
 xcrun simctl io "$DEVICE_UDID" screenshot \
   "$ARTIFACTS_DIR/first-page.png"
+
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
+  --show-folder-batch-progress
+sleep 3
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/folder-batch-progress.png"
+
+PASSWORD_STORE_RESULT="$DATA_CONTAINER/Documents/password-store-result.json"
+rm -f "$PASSWORD_STORE_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --password-store-smoke-test
+
+for _ in {1..60}; do
+  if [[ -f "$PASSWORD_STORE_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .initialPasswordWorks == true
+  and .wrongPasswordRejected == true
+  and .passwordChanged == true
+  and .oldPasswordRejected == true
+  and .newPasswordWorks == true
+  and .passwordRemoved == true
+  and .hasPasswordAfterRemoval == false
+' "$PASSWORD_STORE_RESULT" >/dev/null
+cp "$PASSWORD_STORE_RESULT" \
+  "$ARTIFACTS_DIR/password-store-result.json"
+
+APP_LOCK_RESULT="$DATA_CONTAINER/Documents/app-lock-result.json"
+rm -f "$APP_LOCK_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --install-debug-app-password \
+  "LongImageViewer#123" \
+  --report-app-lock-state
+
+for _ in {1..30}; do
+  if [[ -f "$APP_LOCK_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .isLocked == true
+  and .hasPassword == true
+  and .gracePeriodSeconds == 180
+  and .shortBackgroundRequiresPassword == false
+  and .expiredBackgroundRequiresPassword == true
+' "$APP_LOCK_RESULT" >/dev/null
+cp "$APP_LOCK_RESULT" "$ARTIFACTS_DIR/app-lock-result.json"
+sleep 1
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/app-lock.png"
+
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password
 
 echo
 echo "Simulator: $DEVICE_NAME ($DEVICE_UDID)"

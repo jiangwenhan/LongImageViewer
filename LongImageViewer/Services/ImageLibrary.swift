@@ -298,47 +298,63 @@ final class ImageLibrary {
     from url: URL,
     completion: @escaping (Result<FolderSyncSummary, Error>) -> Void
   ) {
+    addFolders(from: [url], completion: completion)
+  }
+
+  func addFolders(
+    from urls: [URL],
+    completion: @escaping (Result<FolderSyncSummary, Error>) -> Void
+  ) {
+    guard !urls.isEmpty else {
+      completion(.failure(ImageLibraryError.noFolders))
+      return
+    }
+
     let currentFolders = folders
 
     importQueue.async { [weak self] in
       guard let self else { return }
-      let hasAccess = url.startAccessingSecurityScopedResource()
-      defer {
-        if hasAccess {
-          url.stopAccessingSecurityScopedResource()
-        }
-      }
 
       do {
-        let bookmarkData = try url.bookmarkData(
-          options: self.bookmarkCreationOptions,
-          includingResourceValuesForKeys: nil,
-          relativeTo: nil
-        )
-        let pathHint = url.standardizedFileURL.path
         var nextFolders = currentFolders
 
-        if let index = nextFolders.firstIndex(
-          where: { $0.pathHint == pathHint }
-        ) {
-          let existing = nextFolders[index]
-          nextFolders[index] = ImageFolder(
-            id: existing.id,
-            displayName: url.lastPathComponent,
-            bookmarkData: bookmarkData,
-            addedAt: existing.addedAt,
-            pathHint: pathHint
+        for url in urls {
+          let hasAccess = url.startAccessingSecurityScopedResource()
+          defer {
+            if hasAccess {
+              url.stopAccessingSecurityScopedResource()
+            }
+          }
+
+          let bookmarkData = try url.bookmarkData(
+            options: self.bookmarkCreationOptions,
+            includingResourceValuesForKeys: nil,
+            relativeTo: nil
           )
-        } else {
-          nextFolders.append(
-            ImageFolder(
-              id: UUID(),
+          let pathHint = url.standardizedFileURL.path
+
+          if let index = nextFolders.firstIndex(
+            where: { $0.pathHint == pathHint }
+          ) {
+            let existing = nextFolders[index]
+            nextFolders[index] = ImageFolder(
+              id: existing.id,
               displayName: url.lastPathComponent,
               bookmarkData: bookmarkData,
-              addedAt: Date(),
+              addedAt: existing.addedAt,
               pathHint: pathHint
             )
-          )
+          } else {
+            nextFolders.append(
+              ImageFolder(
+                id: UUID(),
+                displayName: url.lastPathComponent,
+                bookmarkData: bookmarkData,
+                addedAt: Date(),
+                pathHint: pathHint
+              )
+            )
+          }
         }
 
         try self.saveFolders(nextFolders)

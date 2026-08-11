@@ -1,90 +1,83 @@
-# 长图阅览
+# LongImageViewer
 
-面向 iPhone 13 Pro Max 的原生 iOS 长图浏览 App，最低支持 iOS 16。
+**English** | [简体中文](README.zh-CN.md)
 
-## 功能
+A native iOS app for viewing long images, optimized for iPhone 13 Pro Max and requiring iOS 16 or later.
 
-- 图片自动适应屏幕宽度，通过上下滑动连续浏览
-- 图片之间显示 1 个物理像素的分割线
-- 左上角显示当前页/总页数，顶部显示当前文件名
-- 右上角每秒显示当前进程实际占用内存
-- 支持按创建时间或文件名顺排、倒排
-- 从系统“文件”App 批量导入 PNG、JPEG、HEIC 等系统支持的图片
-- 支持连续选择多个“我的 iPhone”、iCloud Drive 或 Mac 本地图片文件夹并批量导入
-- 保存文件夹访问权限，启动时增量同步新增、修改和删除的图片
-- 按文件夹粒度隔离浏览范围，不混合不同目录中的图片
-- 右划打开文件夹侧边栏，左划关闭；当前文件夹高亮显示
-- 文件夹行左划可移除 App 内关联和缓存，不删除源文件
-- 可选设置应用密码，启动或离开 App 满 3 分钟后自动锁定
-- 支持验证当前密码后修改或关闭密码
-- 按图块区域渲染，浏览时惰性解码并限制内存缓存
+## Features
 
-## 图片目录
+- Fits every image to the screen width and provides continuous vertical scrolling
+- Draws a one-physical-pixel divider between image pages
+- Shows the current page, total page count, filename, and live process memory usage
+- Sorts by creation date or filename in ascending or descending order
+- Imports multiple PNG, JPEG, HEIC, and other system-supported image files
+- Adds multiple folders from On My iPhone, iCloud Drive, or local macOS storage
+- Persists folder access and incrementally syncs added, changed, and removed images
+- Keeps browsing and page counts scoped to the selected folder
+- Opens the folder sidebar with a right swipe and closes it with a left swipe
+- Removes app metadata and caches with a row swipe without deleting source files
+- Optionally protects the app with a password and a three-minute relock grace period
+- Renders images in tiles with bounded decoding concurrency and memory caches
 
-点击右下角“来源”：
+## Image Sources
 
-- `批量添加图片文件夹`：在 iPhone 上每次授权一个目录，返回 App 后可继续选择，最后统一导入；Mac Catalyst 支持系统原生多选。
-- `选择图片文件`：保留原有的多文件导入方式。
-- `同步已添加文件夹`：立即扫描已保存的目录。
-- `管理已加载文件夹`：打开文件夹侧边栏。
-- `密码与锁定`：设置、修改或关闭应用密码。
+Tap `来源` (Sources) in the lower-right corner:
 
-打开目录时只扫描文件名、尺寸、时间等元数据，不生成全部图片缓存。当前视口及前方最多 2 个图块按滚动位置生成，离开内存缓存范围后自动回收。源目录新增、修改或删除图片后，重新打开 App 或点击同步即可更新。
+- `批量添加图片文件夹` (Batch Add Image Folders): on iPhone, authorize one folder at a time, return to the app, and continue selecting before importing the batch. Mac Catalyst supports native multi-selection.
+- `选择图片文件` (Select Image Files): copy multiple individual images into the app-managed Manual Import collection.
+- `同步已添加文件夹` (Sync Added Folders): scan all persisted folders immediately.
+- `管理已加载文件夹` (Manage Loaded Folders): open the folder sidebar.
+- `密码与锁定` (Password & Lock): set, change, or disable the app password.
 
-文件夹管理只有一层，不在侧边栏展开单张图片。主浏览区只显示当前选中文件夹中的图片，页码也以该文件夹为范围。单指右划可打开侧边栏；点击文件夹可切换；文件夹行左划露出删除按钮；标题或空白区域左划可关闭侧边栏。
+Opening a folder reads only filenames, dimensions, timestamps, and other metadata. It does not render every image up front. Tiles are generated for the current viewport and at most two tiles ahead, then evicted when they leave the cache window.
 
-同一工程支持 iPhone 和 Mac Catalyst。Mac 版本可通过系统文件选择器浏览本机目录及 iCloud Drive。
+The sidebar has one folder-level hierarchy and does not list individual images. The main viewer and page counter include only the selected folder. Swipe right to open the sidebar, tap a folder to switch, swipe a row left to remove it, and swipe left on the header or empty area to close the sidebar.
 
-本机 Mac Catalyst 构建产物位于：
+The same project supports iPhone and Mac Catalyst. On macOS, use the system picker to access local folders or iCloud Drive. A local Catalyst release build is produced at:
 
-` .build/CatalystReleaseDerivedData/Build/Products/Release-maccatalyst/LongImageViewer.app `
+`.build/CatalystReleaseDerivedData/Build/Products/Release-maccatalyst/LongImageViewer.app`
 
-在 Xcode 顶部选择 `My Mac (Mac Catalyst)` 后运行，也可以直接验证 macOS 本地目录访问。
+## Password and Lock
 
-## 密码与锁定
+- With no password configured, the app opens directly into the viewer.
+- Set a 4–64 character password from `来源` (Sources) → `密码与锁定` (Password & Lock).
+- A cold launch always requires the password when protection is enabled.
+- Returning within three minutes does not require another password entry.
+- Returning after three minutes displays the lock screen.
+- A privacy cover hides image content in the app switcher while the app is inactive.
+- Changing or disabling the password requires the current password.
+- The app stores a salted, iterated password digest in Keychain, not in image folders or ordinary preferences.
+- Password recovery and reset are intentionally unsupported.
 
-- 未设置密码时，App 直接进入图片浏览页面。
-- 通过右下角“来源”→“密码与锁定”可设置 4–64 个字符的密码。
-- 设置密码后，重新启动 App，或 App 进入后台满 3 分钟再返回时会显示锁定页。
-- 离开 App 不足 3 分钟时无需重新输入密码；后台期间仍使用隐私遮罩隐藏图片内容。
-- 修改或关闭密码前必须输入当前密码。
-- 密码以随机盐和多轮摘要保存在系统 Keychain 中，不写入图片目录或普通配置文件。
-- 不提供“忘记密码”找回或重置功能，请妥善保存密码。
+## Memory Strategy
 
-当前会话设置密码后不会立即中断浏览；重新启动 App，或离开达到 3 分钟后开始要求验证。关闭密码后，后续启动将直接进入。
+- The decoded image cache is dynamically capped at 32–64 MiB and eight tiles.
+- At most two decode operations run concurrently.
+- Long source images are cropped and rendered by visible tile region without creating a full-size intermediate bitmap.
+- Individually imported files retain one source copy and generate tiles only near the viewport.
+- Entering the background or receiving a memory warning clears the image cache.
+- Crossing a dynamic process-memory threshold triggers proactive eviction.
 
-## 内存策略
+## Install on iPhone
 
-- 图片缓存动态限制在 32–64 MiB，最多保留 8 个解码图块。
-- 同时解码任务最多 2 个，避免滚动预加载瞬间占用过高。
-- 超长原图按可见图块区域渲染，不创建完整尺寸中间位图。
-- 单独选择图片时只保存原图副本，同样在滚动到附近时才生成图块。
-- 进入后台或收到系统内存警告时立即清空图片缓存。
-- 进程内存超过动态压力阈值时主动清理缓存。
+See the [Device Installation Guide](Docs/Device-Installation-Guide.md) for signing, installation, and troubleshooting steps.
 
-## 安装到 iPhone
+Apps signed with a free Apple ID generally expire after seven days and must be installed again through Xcode. Paid Apple Developer Program signing does not have this short expiration window.
 
-完整步骤、签名设置和常见问题见
-[`Docs/真机安装指南.md`](Docs/真机安装指南.md)。
+## Simulator Validation
 
-使用免费 Apple ID 签名时，安装通常会在 7 天后失效，需要再次通过 Xcode 安装；付费开发者账号签名不受这一短周期限制。
+The generated fixtures are in `TestImages/`. See the [Test Image Guide](TestImages/README.md) for their dimensions and coverage.
 
-## 模拟器验证
-
-测试图片位于 `TestImages/`，生成方式和覆盖场景见
-[`TestImages/README.md`](TestImages/README.md)。
-
-安装 iOS Simulator Runtime 后，可运行：
+After installing an iOS Simulator Runtime, run:
 
 ```bash
 ./Tools/RunSimulatorSmokeTest.sh
 ```
 
-脚本会创建 iPhone 13 Pro Max 模拟器，构建并安装 App，导入全部测试图，执行 18 秒自动滚动，并将截图和帧统计写入 `Artifacts/Simulator/`。
+The script creates an iPhone 13 Pro Max simulator, builds and installs the app, imports all fixtures, performs an 18-second automated scroll, validates folder and lock behavior, and writes screenshots and metrics to `Artifacts/Simulator/`.
 
-本机实测结果见
-[`Docs/模拟器验证报告.md`](Docs/模拟器验证报告.md)。
+See the [Simulator Validation Report](Docs/Simulator-Validation-Report.md) for the latest recorded results.
 
-## 使用
+## Basic Usage
 
-首次启动点击“浏览图片文件夹”，每次在系统选择器中授权一个目录，返回 App 后点击“继续选择”添加下一个，最后点击“导入 N 个文件夹”。也可以进入浏览后点击右下角“来源”→“批量添加图片文件夹”。左下角按钮可调整排序或清空 App 内的缓存和目录关联。
+On first launch, tap `浏览图片文件夹` (Browse Image Folder). On iPhone, authorize one folder in each system-picker pass, tap `继续选择` (Continue Selecting) to add another, and finally tap `导入 N 个文件夹` (Import N Folders). Use the lower-left control to change sorting or clear app-managed caches and folder associations.

@@ -1,0 +1,44 @@
+{
+  "averageFPS" : 60,
+  "contentHeight" : 15994,
+  "documentCount" : 6,
+  "durationSeconds" : 18.010000000000002,
+  "frameCount" : 1080,
+  "slowFrameCount" : 1,
+  "sortOrders" : {
+    "creationAscending" : [
+      "20_wide_short_1800x1500.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "01_narrow_short_640x1800.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "Z_tall_narrow_900x12000.jpg"
+    ],
+    "creationDescending" : [
+      "Z_tall_narrow_900x12000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "01_narrow_short_640x1800.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "20_wide_short_1800x1500.jpg"
+    ],
+    "filenameAscending" : [
+      "01_narrow_short_640x1800.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "20_wide_short_1800x1500.jpg",
+      "Z_tall_narrow_900x12000.jpg"
+    ],
+    "filenameDescending" : [
+      "Z_tall_narrow_900x12000.jpg",
+      "20_wide_short_1800x1500.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "01_narrow_short_640x1800.jpg"
+    ]
+  },
+  "status" : "passed",
+  "visitedPageCount" : 6
+}

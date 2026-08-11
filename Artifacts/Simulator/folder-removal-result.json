@@ -1,0 +1,47 @@
+{
+  "averageFPS" : 60,
+  "contentHeight" : 15638,
+  "directorySyncDurationSeconds" : 0.059999999999999998,
+  "documentCount" : 5,
+  "durationSeconds" : 18.010000000000002,
+  "expectedTileCount" : 29,
+  "finalMaterializedTileCount" : 29,
+  "folderCount" : 1,
+  "frameCount" : 1081,
+  "initialMaterializedTileCount" : 29,
+  "peakMemoryBytes" : 96963608,
+  "slowFrameCount" : 0,
+  "sortOrders" : {
+    "creationAscending" : [
+      "02_phone_medium_1284x5000.jpg",
+      "01_narrow_short_640x1800.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "Z_tall_narrow_900x12000.jpg"
+    ],
+    "creationDescending" : [
+      "Z_tall_narrow_900x12000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "01_narrow_short_640x1800.jpg",
+      "02_phone_medium_1284x5000.jpg"
+    ],
+    "filenameAscending" : [
+      "01_narrow_short_640x1800.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "Z_tall_narrow_900x12000.jpg"
+    ],
+    "filenameDescending" : [
+      "Z_tall_narrow_900x12000.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "01_narrow_short_640x1800.jpg"
+    ]
+  },
+  "status" : "passed",
+  "usedMemoryBytes" : 82873344,
+  "visitedPageCount" : 5
+}

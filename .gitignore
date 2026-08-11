@@ -1,0 +1,23 @@
+# macOS
+.DS_Store
+
+# Xcode
+DerivedData/
+.build/
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.xcscmblueprint
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+
+# Local signing and archives
+*.mobileprovision
+*.ipa
+*.xcarchive
+
+# Temporary files
+*.tmp
+*.log

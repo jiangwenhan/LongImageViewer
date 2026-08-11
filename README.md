@@ -17,6 +17,7 @@ A native iOS app for viewing long images, optimized for iPhone 13 Pro Max and re
 - Opens the folder sidebar with a right swipe and closes it with a left swipe
 - Removes app metadata and caches with a row swipe without deleting source files
 - Optionally protects the app with a password and a three-minute relock grace period
+- Includes selectable English, Simplified Chinese, and Japanese interfaces
 - Renders images in tiles with bounded decoding concurrency and memory caches
 
 ## Image Sources
@@ -28,6 +29,7 @@ Tap `来源` (Sources) in the lower-right corner:
 - `同步已添加文件夹` (Sync Added Folders): scan all persisted folders immediately.
 - `管理已加载文件夹` (Manage Loaded Folders): open the folder sidebar.
 - `密码与锁定` (Password & Lock): set, change, or disable the app password.
+- `语言` / `Language` / `言語`: switch the app interface language.
 
 Opening a folder reads only filenames, dimensions, timestamps, and other metadata. It does not render every image up front. Tiles are generated for the current viewport and at most two tiles ahead, then evicted when they leave the cache window.
 
@@ -36,6 +38,16 @@ The sidebar has one folder-level hierarchy and does not list individual images. 
 The same project supports iPhone and Mac Catalyst. On macOS, use the system picker to access local folders or iCloud Drive. A local Catalyst release build is produced at:
 
 `.build/CatalystReleaseDerivedData/Build/Products/Release-maccatalyst/LongImageViewer.app`
+
+## Interface Languages
+
+- English
+- Simplified Chinese
+- Japanese
+
+On first launch, the app follows the device language when it is one of the supported languages and otherwise falls back to English. To override it, open `Sources` → `Language` and choose `English`, `简体中文`, or `日本語`. The selection is persisted and the app-owned interface refreshes immediately.
+
+The system Files picker remains controlled by the device language because it is an iOS component. The Home Screen display name also follows the device language rather than the in-app override.
 
 ## Password and Lock
 
@@ -80,4 +92,4 @@ See the [Simulator Validation Report](Docs/Simulator-Validation-Report.md) for t
 
 ## Basic Usage
 
-On first launch, tap `浏览图片文件夹` (Browse Image Folder). On iPhone, authorize one folder in each system-picker pass, tap `继续选择` (Continue Selecting) to add another, and finally tap `导入 N 个文件夹` (Import N Folders). Use the lower-left control to change sorting or clear app-managed caches and folder associations.
+On first launch, tap Browse Image Folder. On iPhone, authorize one folder in each system-picker pass, tap Continue Selecting to add another, and finally tap Import N Folders. Use the lower-left control to change sorting or clear app-managed caches and folder associations.

@@ -28,7 +28,7 @@ final class FolderSidebarView: UIView {
 
   private let titleLabel: UILabel = {
     let label = UILabel()
-    label.text = "图片文件夹"
+    label.text = L("sidebar.title")
     label.textColor = .label
     label.font = .systemFont(ofSize: 24, weight: .bold)
     label.translatesAutoresizingMaskIntoConstraints = false
@@ -37,7 +37,7 @@ final class FolderSidebarView: UIView {
 
   private let subtitleLabel: UILabel = {
     let label = UILabel()
-    label.text = "选择文件夹后，仅浏览其中的图片"
+    label.text = L("sidebar.subtitle")
     label.textColor = .secondaryLabel
     label.font = .systemFont(ofSize: 13)
     label.numberOfLines = 0
@@ -50,7 +50,7 @@ final class FolderSidebarView: UIView {
     configuration.image = UIImage(systemName: "xmark")
     configuration.baseForegroundColor = .secondaryLabel
     let button = UIButton(configuration: configuration)
-    button.accessibilityLabel = "关闭文件夹侧边栏"
+    button.accessibilityLabel = L("sidebar.close")
     button.translatesAutoresizingMaskIntoConstraints = false
     return button
   }()
@@ -95,6 +95,12 @@ final class FolderSidebarView: UIView {
     closeSwipe.direction = .left
     closeSwipe.delegate = self
     addGestureRecognizer(closeSwipe)
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(languageDidChange),
+      name: AppLocalization.didChangeNotification,
+      object: nil
+    )
 
     NSLayoutConstraint.activate([
       titleLabel.leadingAnchor.constraint(
@@ -146,6 +152,10 @@ final class FolderSidebarView: UIView {
     fatalError("init(coder:) has not been implemented")
   }
 
+  deinit {
+    NotificationCenter.default.removeObserver(self)
+  }
+
   func update(
     items: [FolderSidebarItem],
     selectedFolderID: UUID?,
@@ -154,6 +164,13 @@ final class FolderSidebarView: UIView {
     self.items = items
     self.selectedFolderID = selectedFolderID
     self.selectsStandaloneFolder = selectsStandaloneFolder
+    tableView.reloadData()
+  }
+
+  @objc private func languageDidChange() {
+    titleLabel.text = L("sidebar.title")
+    subtitleLabel.text = L("sidebar.subtitle")
+    closeButton.accessibilityLabel = L("sidebar.close")
     tableView.reloadData()
   }
 
@@ -227,7 +244,10 @@ extension FolderSidebarView: UITableViewDataSource {
       ofSize: 16,
       weight: selected ? .semibold : .regular
     )
-    content.secondaryText = "\(item.imageCount) 张图片"
+    content.secondaryText = L(
+      "sidebar.image_count_format",
+      item.imageCount
+    )
     content.secondaryTextProperties.color = .secondaryLabel
     cell.contentConfiguration = content
 
@@ -241,7 +261,8 @@ extension FolderSidebarView: UITableViewDataSource {
     cell.accessoryType = selected ? .checkmark : .none
     cell.tintColor = .systemBlue
     cell.selectionStyle = .none
-    cell.accessibilityValue = selected ? "当前文件夹" : nil
+    cell.accessibilityValue =
+      selected ? L("sidebar.current") : nil
     return cell
   }
 }
@@ -264,7 +285,7 @@ extension FolderSidebarView: UITableViewDelegate {
     let item = items[indexPath.row]
     let deleteAction = UIContextualAction(
       style: .destructive,
-      title: "删除"
+      title: L("common.delete")
     ) { [weak self] _, _, completion in
       guard let self else {
         completion(false)

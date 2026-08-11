@@ -8,6 +8,10 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    #if DEBUG
+      prepareLanguageTestingIfRequested()
+    #endif
+
     let passwordStore = AppPasswordStore.shared
     #if DEBUG
       preparePasswordTestingIfRequested(passwordStore)
@@ -30,6 +34,18 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
   }
 
   #if DEBUG
+    private func prepareLanguageTestingIfRequested() {
+      let arguments = ProcessInfo.processInfo.arguments
+      guard
+        let index = arguments.firstIndex(of: "--app-language"),
+        arguments.indices.contains(index + 1),
+        let language = AppLanguage(rawValue: arguments[index + 1])
+      else {
+        return
+      }
+      AppLocalization.shared.setLanguage(language)
+    }
+
     private func preparePasswordTestingIfRequested(
       _ passwordStore: AppPasswordStore
     ) {

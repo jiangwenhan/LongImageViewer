@@ -17,7 +17,14 @@ final class AppLockViewController: UIViewController {
   private var mayResumeWithoutPassword = false
 
   private let lockView = AppLockView()
-  private let privacyView: UIView = {
+  private let privacyTitleLabel: UILabel = {
+    let label = UILabel()
+    label.text = L("lock.privacy_title")
+    label.font = .systemFont(ofSize: 22, weight: .bold)
+    label.textAlignment = .center
+    return label
+  }()
+  private lazy var privacyView: UIView = {
     let view = UIView()
     view.backgroundColor = .systemBackground
     view.translatesAutoresizingMaskIntoConstraints = false
@@ -35,12 +42,9 @@ final class AppLockViewController: UIViewController {
     iconView.tintColor = .systemBlue
     iconView.contentMode = .scaleAspectFit
 
-    let label = UILabel()
-    label.text = "长图阅览"
-    label.font = .systemFont(ofSize: 22, weight: .bold)
-    label.textAlignment = .center
-
-    let stack = UIStackView(arrangedSubviews: [iconView, label])
+    let stack = UIStackView(
+      arrangedSubviews: [iconView, privacyTitleLabel]
+    )
     stack.axis = .vertical
     stack.alignment = .center
     stack.spacing = 14
@@ -122,6 +126,13 @@ final class AppLockViewController: UIViewController {
       name: UIApplication.didBecomeActiveNotification,
       object: nil
     )
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(languageDidChange),
+      name: AppLocalization.didChangeNotification,
+      object: nil
+    )
+    applyLocalization()
 
     if startsLocked {
       activateLock(errorMessage: initialProtectionError)
@@ -142,6 +153,15 @@ final class AppLockViewController: UIViewController {
 
   deinit {
     NotificationCenter.default.removeObserver(self)
+  }
+
+  @objc private func languageDidChange() {
+    applyLocalization()
+  }
+
+  private func applyLocalization() {
+    privacyTitleLabel.text = L("lock.privacy_title")
+    lockView.applyLocalization()
   }
 
   func presentPasswordSettings() {
@@ -264,7 +284,7 @@ final class AppLockViewController: UIViewController {
     lockView.setBusy(false)
     if let errorMessage {
       lockView.showError(
-        "无法读取应用密码。\(errorMessage)"
+        L("lock.read_error_format", errorMessage)
       )
     } else {
       lockView.showError(nil)
@@ -336,7 +356,7 @@ final class AppLockViewController: UIViewController {
   private func unlock(using password: String) {
     guard !isAuthenticating else { return }
     guard !password.isEmpty else {
-      lockView.showError("请输入应用密码。")
+      lockView.showError(L("lock.enter_password"))
       return
     }
 
@@ -356,11 +376,14 @@ final class AppLockViewController: UIViewController {
           self.deactivateLock()
         case .success(false):
           self.lockView.clearPassword()
-          self.lockView.showError("密码错误，请重试。")
+          self.lockView.showError(L("lock.incorrect"))
           self.lockView.focusPasswordField()
         case .failure(let error):
           self.lockView.showError(
-            "无法验证密码。\(error.localizedDescription)"
+            L(
+              "lock.verify_error_format",
+              error.localizedDescription
+            )
           )
         }
       }
@@ -380,11 +403,13 @@ final class AppLockViewController: UIViewController {
 
   private func presentError(_ error: Error) {
     let alert = UIAlertController(
-      title: "无法打开密码设置",
+      title: L("lock.settings_error_title"),
       message: error.localizedDescription,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "好", style: .default))
+    alert.addAction(
+      UIAlertAction(title: L("common.ok"), style: .default)
+    )
     topViewController().present(alert, animated: true)
   }
 
@@ -450,7 +475,7 @@ private final class AppLockView: UIView, UITextFieldDelegate {
 
   private let passwordField: UITextField = {
     let field = UITextField()
-    field.placeholder = "应用密码"
+    field.placeholder = L("lock.password_placeholder")
     field.isSecureTextEntry = true
     field.textContentType = .password
     field.autocapitalizationType = .none
@@ -476,7 +501,7 @@ private final class AppLockView: UIView, UITextFieldDelegate {
 
   private let unlockButton: UIButton = {
     var configuration = UIButton.Configuration.filled()
-    configuration.title = "解锁"
+    configuration.title = L("lock.unlock")
     configuration.cornerStyle = .large
     configuration.baseBackgroundColor = .systemBlue
     let button = UIButton(configuration: configuration)
@@ -492,6 +517,23 @@ private final class AppLockView: UIView, UITextFieldDelegate {
     label.textAlignment = .center
     label.numberOfLines = 0
     label.translatesAutoresizingMaskIntoConstraints = false
+    return label
+  }()
+
+  private let titleLabel: UILabel = {
+    let label = UILabel()
+    label.text = L("lock.title")
+    label.font = .systemFont(ofSize: 26, weight: .bold)
+    label.textAlignment = .center
+    return label
+  }()
+
+  private let subtitleLabel: UILabel = {
+    let label = UILabel()
+    label.text = L("lock.subtitle")
+    label.font = .systemFont(ofSize: 15)
+    label.textColor = .secondaryLabel
+    label.textAlignment = .center
     return label
   }()
 
@@ -541,6 +583,13 @@ private final class AppLockView: UIView, UITextFieldDelegate {
     unlockButton.configuration?.showsActivityIndicator = busy
   }
 
+  func applyLocalization() {
+    passwordField.placeholder = L("lock.password_placeholder")
+    unlockButton.configuration?.title = L("lock.unlock")
+    titleLabel.text = L("lock.title")
+    subtitleLabel.text = L("lock.subtitle")
+  }
+
   func textFieldShouldReturn(_ textField: UITextField) -> Bool {
     submitPassword()
     return false
@@ -567,17 +616,6 @@ private final class AppLockView: UIView, UITextFieldDelegate {
     )
     iconView.tintColor = .systemBlue
     iconView.contentMode = .scaleAspectFit
-
-    let titleLabel = UILabel()
-    titleLabel.text = "长图阅览已锁定"
-    titleLabel.font = .systemFont(ofSize: 26, weight: .bold)
-    titleLabel.textAlignment = .center
-
-    let subtitleLabel = UILabel()
-    subtitleLabel.text = "请输入应用密码以继续使用"
-    subtitleLabel.font = .systemFont(ofSize: 15)
-    subtitleLabel.textColor = .secondaryLabel
-    subtitleLabel.textAlignment = .center
 
     let stack = UIStackView(
       arrangedSubviews: [

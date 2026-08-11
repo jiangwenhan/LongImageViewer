@@ -27,8 +27,8 @@ enum ProcessMemoryMonitor {
   }
 
   static var formattedUsedMemory: String {
-    guard let usedBytes else { return "内存 --" }
+    guard let usedBytes else { return L("memory.unavailable") }
     let mebibytes = Double(usedBytes) / 1_048_576
-    return String(format: "内存 %.0f MB", mebibytes)
+    return L("memory.format", mebibytes)
   }
 }

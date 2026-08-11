@@ -12,15 +12,21 @@ enum AppPasswordStoreError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .passwordAlreadySet:
-      return "应用密码已存在。"
+      return L("password.error.already_set")
     case .passwordNotSet:
-      return "尚未设置应用密码。"
+      return L("password.error.not_set")
     case .invalidStoredPassword:
-      return "保存的应用密码数据已损坏。"
+      return L("password.error.invalid_data")
     case .randomGenerationFailed(let status):
-      return "无法生成安全的密码数据。\(message(for: status))"
+      return L(
+        "password.error.random_format",
+        message(for: status)
+      )
     case .keychainFailure(let status):
-      return "无法访问系统钥匙串。\(message(for: status))"
+      return L(
+        "password.error.keychain_format",
+        message(for: status)
+      )
     }
   }
 
@@ -28,7 +34,7 @@ enum AppPasswordStoreError: LocalizedError {
     if let message = SecCopyErrorMessageString(status, nil) {
       return "\(message)"
     }
-    return "系统错误 \(status)"
+    return L("password.error.system_format", status)
   }
 }
 

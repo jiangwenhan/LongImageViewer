@@ -19,6 +19,9 @@
 		B10000000000000000000010 /* AppPasswordStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000011 /* AppPasswordStore.swift */; };
 		B10000000000000000000011 /* AppLockViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000012 /* AppLockViewController.swift */; };
 		B10000000000000000000012 /* PasswordSettingsViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000013 /* PasswordSettingsViewController.swift */; };
+		B10000000000000000000013 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* AppLocalization.swift */; };
+		B10000000000000000000014 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* Localizable.strings */; };
+		B10000000000000000000015 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000010 /* InfoPlist.strings */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -35,6 +38,13 @@
 		A10000000000000000000011 /* AppPasswordStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppPasswordStore.swift; sourceTree = "<group>"; };
 		A10000000000000000000012 /* AppLockViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLockViewController.swift; sourceTree = "<group>"; };
 		A10000000000000000000013 /* PasswordSettingsViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordSettingsViewController.swift; sourceTree = "<group>"; };
+		A10000000000000000000014 /* AppLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppLocalization.swift; sourceTree = "<group>"; };
+		A10000000000000000000015 /* en Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
+		A10000000000000000000016 /* zh-Hans Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
+		A10000000000000000000017 /* ja Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/Localizable.strings; sourceTree = "<group>"; };
+		A10000000000000000000018 /* en InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A10000000000000000000019 /* zh-Hans InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
+		A10000000000000000000020 /* ja InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +74,9 @@
 				D10000000000000000000004 /* Services */,
 				D10000000000000000000005 /* Views */,
 				D10000000000000000000006 /* ViewControllers */,
+				D10000000000000000000008 /* Localization */,
+				D10000000000000000000009 /* Localizable.strings */,
+				D10000000000000000000010 /* InfoPlist.strings */,
 				A10000000000000000000007 /* Assets.xcassets */,
 			);
 			path = LongImageViewer;
@@ -115,6 +128,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		D10000000000000000000008 /* Localization */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000014 /* AppLocalization.swift */,
+			);
+			path = Localization;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -152,11 +173,12 @@
 			};
 			buildConfigurationList = F10000000000000000000001 /* Build configuration list for PBXProject "LongImageViewer" */;
 			compatibilityVersion = "Xcode 14.0";
-			developmentRegion = zh_Hans;
+			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				Base,
 				en,
+				ja,
 				zh_Hans,
 			);
 			mainGroup = D10000000000000000000001;
@@ -175,6 +197,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B10000000000000000000007 /* Assets.xcassets in Resources */,
+				B10000000000000000000014 /* Localizable.strings in Resources */,
+				B10000000000000000000015 /* InfoPlist.strings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -196,10 +220,34 @@
 				B10000000000000000000010 /* AppPasswordStore.swift in Sources */,
 				B10000000000000000000011 /* AppLockViewController.swift in Sources */,
 				B10000000000000000000012 /* PasswordSettingsViewController.swift in Sources */,
+				B10000000000000000000013 /* AppLocalization.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		D10000000000000000000009 /* Localizable.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A10000000000000000000015 /* en Localizable.strings */,
+				A10000000000000000000016 /* zh-Hans Localizable.strings */,
+				A10000000000000000000017 /* ja Localizable.strings */,
+			);
+			name = Localizable.strings;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000010 /* InfoPlist.strings */ = {
+			isa = PBXVariantGroup;
+			children = (
+				A10000000000000000000018 /* en InfoPlist.strings */,
+				A10000000000000000000019 /* zh-Hans InfoPlist.strings */,
+				A10000000000000000000020 /* ja InfoPlist.strings */,
+			);
+			name = InfoPlist.strings;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		F10000000000000000000003 /* Debug */ = {
@@ -320,7 +368,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = J3U546S7UU;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "长图阅览";
+				INFOPLIST_KEY_CFBundleDisplayName = LongImageViewer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photo-video";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIFileSharingEnabled = YES;
@@ -352,7 +400,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = J3U546S7UU;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = "长图阅览";
+				INFOPLIST_KEY_CFBundleDisplayName = LongImageViewer;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.photo-video";
 				INFOPLIST_KEY_LSSupportsOpeningDocumentsInPlace = YES;
 				INFOPLIST_KEY_UIFileSharingEnabled = YES;

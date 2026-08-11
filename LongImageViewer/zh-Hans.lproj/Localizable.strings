@@ -1,0 +1,115 @@
+"app.name" = "长图阅览";
+"common.ok" = "好";
+"common.cancel" = "取消";
+"common.remove" = "移除";
+"common.delete" = "删除";
+"common.clear" = "清空";
+"common.list_separator" = "、";
+
+"language.title" = "语言";
+"language.message" = "选择应用界面语言。系统文件选择器仍跟随设备语言。";
+
+"sort.accessibility" = "排序";
+"sort.title" = "图片排序";
+"sort.creation_ascending" = "创建时间顺排";
+"sort.creation_descending" = "创建时间倒排";
+"sort.filename_ascending" = "文件名顺排";
+"sort.filename_descending" = "文件名倒排";
+"sort.clear_all" = "清空全部图片";
+
+"source.button" = "来源";
+"source.title" = "图片来源";
+"source.manage_folders" = "管理已加载文件夹";
+"source.batch_add_folders" = "批量添加图片文件夹";
+"source.select_files" = "选择图片文件";
+"source.sync_folders" = "同步已添加文件夹";
+"source.password_lock" = "密码与锁定";
+
+"empty.initial_title" = "还没有长图";
+"empty.browse_locations" = "浏览“我的 iPhone”、iCloud Drive\n或 Mac 本地目录中的图片";
+"empty.browse_folder" = "浏览图片文件夹";
+"empty.no_folders" = "还没有图片文件夹";
+"empty.folder_format" = "%@ 暂无图片";
+"empty.switch_hint" = "右划打开侧边栏切换文件夹\n或通过“来源”同步当前目录";
+
+"batch.explanation_title" = "批量添加图片文件夹";
+"batch.explanation_message" = "iPhone 系统每次只授权一个文件夹。选择后返回 App，点击“继续选择”添加下一个；全部选完后再统一导入。";
+"batch.start" = "开始选择";
+"batch.selected_format" = "已选择 %d 个文件夹：\n%@";
+"batch.continue_title" = "继续选择文件夹？";
+"batch.continue" = "继续选择";
+"batch.import_format" = "导入 %d 个文件夹";
+"batch.cancel" = "取消本次添加";
+"batch.added_one" = "文件夹已添加";
+"batch.added_format" = "已添加 %d 个文件夹";
+
+"folder.status_available" = "可进入“我的 iPhone”、iCloud Drive，或 Mac 本地目录";
+"folder.status_added_format" = "已添加：%@";
+"folder.manual_import" = "手动导入";
+"folder.generic" = "图片文件夹";
+"folder.sync_complete" = "文件夹同步完成";
+"folder.sync_added_format" = "新增 %d 张";
+"folder.sync_updated_format" = "更新 %d 张";
+"folder.sync_removed_format" = "移除 %d 张";
+"folder.sync_failed_format" = "读取失败：%@";
+"folder.sync_unavailable_format" = "无法访问：%@";
+
+"sidebar.title" = "图片文件夹";
+"sidebar.subtitle" = "选择文件夹后，仅浏览其中的图片";
+"sidebar.close" = "关闭文件夹侧边栏";
+"sidebar.image_count_format" = "%d 张图片";
+"sidebar.current" = "当前文件夹";
+
+"clear.title" = "清空全部图片？";
+"clear.message" = "图片缓存和文件夹关联将从 App 中删除，此操作不会影响原文件。";
+
+"error.operation_failed" = "操作失败";
+"error.invalid_image_format" = "无法读取图片：%@";
+"error.tile_encoding_format" = "无法处理图片：%@";
+"error.no_images_imported" = "没有可导入的图片";
+"error.no_folders" = "还没有添加图片文件夹";
+"error.folder_access_format" = "无法访问文件夹：%@";
+
+"collection.remove_manual_message" = "将清理“手动导入”的图片副本和缓存。";
+"collection.remove_folder_message" = "将移除该文件夹及其缓存，不会删除源目录中的图片。";
+"collection.remove_title_format" = "移除“%@”？";
+"import.partial_failed" = "部分图片未导入";
+
+"memory.unavailable" = "内存 --";
+"memory.format" = "内存 %.0f MB";
+
+"password.error.already_set" = "应用密码已存在。";
+"password.error.not_set" = "尚未设置应用密码。";
+"password.error.invalid_data" = "保存的应用密码数据已损坏。";
+"password.error.random_format" = "无法生成安全的密码数据。%@";
+"password.error.keychain_format" = "无法访问系统钥匙串。%@";
+"password.error.system_format" = "系统错误 %d";
+"password.current" = "当前密码";
+"password.new" = "新密码（4–64 个字符）";
+"password.confirm" = "再次输入新密码";
+"password.disable" = "关闭应用密码";
+"password.setup_title" = "设置应用密码";
+"password.manage_title" = "密码与锁定";
+"password.setup_description" = "设置后，重新启动 App，或离开 App 超过 3 分钟再返回时需要输入密码。";
+"password.manage_description" = "修改或关闭密码前，需要先验证当前密码。";
+"password.set" = "设置密码";
+"password.change" = "修改密码";
+"password.enter_current" = "请输入当前密码。";
+"password.current_incorrect" = "当前密码不正确。";
+"password.length" = "密码需为 4–64 个字符。";
+"password.mismatch" = "两次输入的新密码不一致。";
+"password.enter_current_disable" = "请输入当前密码后再关闭密码。";
+"password.disable_title" = "关闭应用密码？";
+"password.disable_message" = "关闭后，启动 App 或从后台返回时将不再要求输入密码。";
+"password.disable_confirm" = "关闭密码";
+
+"lock.privacy_title" = "长图阅览";
+"lock.read_error_format" = "无法读取应用密码。%@";
+"lock.enter_password" = "请输入应用密码。";
+"lock.incorrect" = "密码错误，请重试。";
+"lock.verify_error_format" = "无法验证密码。%@";
+"lock.settings_error_title" = "无法打开密码设置";
+"lock.password_placeholder" = "应用密码";
+"lock.unlock" = "解锁";
+"lock.title" = "长图阅览已锁定";
+"lock.subtitle" = "请输入应用密码以继续使用";

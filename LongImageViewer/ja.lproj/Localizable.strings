@@ -1,0 +1,115 @@
+"app.name" = "ロング画像ビューア";
+"common.ok" = "OK";
+"common.cancel" = "キャンセル";
+"common.remove" = "削除";
+"common.delete" = "削除";
+"common.clear" = "消去";
+"common.list_separator" = "、";
+
+"language.title" = "言語";
+"language.message" = "アプリで使用する言語を選択してください。システムのファイル選択画面は端末の言語に従います。";
+
+"sort.accessibility" = "並べ替え";
+"sort.title" = "画像の並べ替え";
+"sort.creation_ascending" = "作成日時：昇順";
+"sort.creation_descending" = "作成日時：降順";
+"sort.filename_ascending" = "ファイル名：昇順";
+"sort.filename_descending" = "ファイル名：降順";
+"sort.clear_all" = "すべての画像を消去";
+
+"source.button" = "ソース";
+"source.title" = "画像ソース";
+"source.manage_folders" = "追加済みフォルダを管理";
+"source.batch_add_folders" = "画像フォルダを一括追加";
+"source.select_files" = "画像ファイルを選択";
+"source.sync_folders" = "追加済みフォルダを同期";
+"source.password_lock" = "パスワードとロック";
+
+"empty.initial_title" = "ロング画像がありません";
+"empty.browse_locations" = "このiPhone内、iCloud Drive、\nまたはMacのローカルフォルダを参照";
+"empty.browse_folder" = "画像フォルダを参照";
+"empty.no_folders" = "画像フォルダがありません";
+"empty.folder_format" = "%@ に画像がありません";
+"empty.switch_hint" = "右スワイプでフォルダを切り替えるか、\n「ソース」から現在のフォルダを同期";
+
+"batch.explanation_title" = "画像フォルダを一括追加";
+"batch.explanation_message" = "iPhoneでは一度に1つのフォルダを許可します。選択後にアプリへ戻り、「選択を続ける」で次のフォルダを追加してください。すべて選択したら一括で読み込みます。";
+"batch.start" = "選択を開始";
+"batch.selected_format" = "%d個のフォルダを選択済み：\n%@";
+"batch.continue_title" = "フォルダの選択を続けますか？";
+"batch.continue" = "選択を続ける";
+"batch.import_format" = "%d個のフォルダを読み込む";
+"batch.cancel" = "今回の追加をキャンセル";
+"batch.added_one" = "フォルダを追加しました";
+"batch.added_format" = "%d個のフォルダを追加しました";
+
+"folder.status_available" = "このiPhone内、iCloud Drive、またはMacのローカルフォルダを参照できます";
+"folder.status_added_format" = "追加済み：%@";
+"folder.manual_import" = "手動読み込み";
+"folder.generic" = "画像フォルダ";
+"folder.sync_complete" = "フォルダの同期が完了しました";
+"folder.sync_added_format" = "%d件追加";
+"folder.sync_updated_format" = "%d件更新";
+"folder.sync_removed_format" = "%d件削除";
+"folder.sync_failed_format" = "読み込み失敗：%@";
+"folder.sync_unavailable_format" = "アクセス不可：%@";
+
+"sidebar.title" = "画像フォルダ";
+"sidebar.subtitle" = "選択したフォルダ内の画像のみ表示します";
+"sidebar.close" = "フォルダサイドバーを閉じる";
+"sidebar.image_count_format" = "%d枚の画像";
+"sidebar.current" = "現在のフォルダ";
+
+"clear.title" = "すべての画像を消去しますか？";
+"clear.message" = "画像キャッシュとフォルダの関連付けをアプリから削除します。元のファイルは変更されません。";
+
+"error.operation_failed" = "操作に失敗しました";
+"error.invalid_image_format" = "画像を読み込めません：%@";
+"error.tile_encoding_format" = "画像を処理できません：%@";
+"error.no_images_imported" = "読み込める画像がありません";
+"error.no_folders" = "画像フォルダが追加されていません";
+"error.folder_access_format" = "フォルダにアクセスできません：%@";
+
+"collection.remove_manual_message" = "手動読み込みした画像のコピーとキャッシュを削除します。";
+"collection.remove_folder_message" = "フォルダとキャッシュをアプリから削除します。元の画像は削除されません。";
+"collection.remove_title_format" = "「%@」を削除しますか？";
+"import.partial_failed" = "一部の画像を読み込めませんでした";
+
+"memory.unavailable" = "メモリ --";
+"memory.format" = "メモリ %.0f MB";
+
+"password.error.already_set" = "アプリのパスワードは設定済みです。";
+"password.error.not_set" = "アプリのパスワードが設定されていません。";
+"password.error.invalid_data" = "保存されたパスワードデータが破損しています。";
+"password.error.random_format" = "安全なパスワードデータを生成できません。%@";
+"password.error.keychain_format" = "キーチェーンにアクセスできません。%@";
+"password.error.system_format" = "システムエラー %d";
+"password.current" = "現在のパスワード";
+"password.new" = "新しいパスワード（4〜64文字）";
+"password.confirm" = "新しいパスワードを再入力";
+"password.disable" = "アプリのパスワードを無効にする";
+"password.setup_title" = "アプリのパスワードを設定";
+"password.manage_title" = "パスワードとロック";
+"password.setup_description" = "設定後は、アプリの起動時、または3分以上離れてから戻ったときにパスワードが必要です。";
+"password.manage_description" = "変更または無効化する前に、現在のパスワードを確認します。";
+"password.set" = "パスワードを設定";
+"password.change" = "パスワードを変更";
+"password.enter_current" = "現在のパスワードを入力してください。";
+"password.current_incorrect" = "現在のパスワードが正しくありません。";
+"password.length" = "パスワードは4〜64文字で入力してください。";
+"password.mismatch" = "新しいパスワードが一致しません。";
+"password.enter_current_disable" = "無効にする前に現在のパスワードを入力してください。";
+"password.disable_title" = "アプリのパスワードを無効にしますか？";
+"password.disable_message" = "無効にすると、起動時やバックグラウンドから戻ったときにパスワードを要求しません。";
+"password.disable_confirm" = "パスワードを無効化";
+
+"lock.privacy_title" = "ロング画像ビューア";
+"lock.read_error_format" = "アプリのパスワードを読み込めません。%@";
+"lock.enter_password" = "アプリのパスワードを入力してください。";
+"lock.incorrect" = "パスワードが正しくありません。もう一度お試しください。";
+"lock.verify_error_format" = "パスワードを確認できません。%@";
+"lock.settings_error_title" = "パスワード設定を開けません";
+"lock.password_placeholder" = "アプリのパスワード";
+"lock.unlock" = "ロック解除";
+"lock.title" = "ロング画像ビューアはロックされています";
+"lock.subtitle" = "続行するにはアプリのパスワードを入力してください";

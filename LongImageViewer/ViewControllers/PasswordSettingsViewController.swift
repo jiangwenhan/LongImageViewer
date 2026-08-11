@@ -20,17 +20,17 @@ final class PasswordSettingsViewController:
   private var isSaving = false
 
   private lazy var currentPasswordField = makePasswordField(
-    placeholder: "当前密码",
+    placeholder: L("password.current"),
     contentType: .password,
     returnKeyType: .next
   )
   private lazy var newPasswordField = makePasswordField(
-    placeholder: "新密码（4–64 个字符）",
+    placeholder: L("password.new"),
     contentType: .newPassword,
     returnKeyType: .next
   )
   private lazy var confirmationField = makePasswordField(
-    placeholder: "再次输入新密码",
+    placeholder: L("password.confirm"),
     contentType: .newPassword,
     returnKeyType: .done
   )
@@ -56,11 +56,20 @@ final class PasswordSettingsViewController:
 
   private let disablePasswordButton: UIButton = {
     var configuration = UIButton.Configuration.plain()
-    configuration.title = "关闭应用密码"
+    configuration.title = L("password.disable")
     configuration.baseForegroundColor = .systemRed
     let button = UIButton(configuration: configuration)
     button.translatesAutoresizingMaskIntoConstraints = false
     return button
+  }()
+
+  private let descriptionLabel: UILabel = {
+    let label = UILabel()
+    label.font = .systemFont(ofSize: 15)
+    label.textColor = .secondaryLabel
+    label.textAlignment = .center
+    label.numberOfLines = 0
+    return label
   }()
 
   init(
@@ -80,16 +89,19 @@ final class PasswordSettingsViewController:
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = .systemGroupedBackground
-    title = mode == .setup ? "设置应用密码" : "密码与锁定"
-    navigationItem.leftBarButtonItem = UIBarButtonItem(
-      systemItem: .cancel,
-      primaryAction: UIAction { [weak self] _ in
-        self?.dismiss(animated: true)
-      }
-    )
-
     setupViews()
     setupActions()
+    applyLocalization()
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(languageDidChange),
+      name: AppLocalization.didChangeNotification,
+      object: nil
+    )
+  }
+
+  deinit {
+    NotificationCenter.default.removeObserver(self)
   }
 
   override func viewDidAppear(_ animated: Bool) {
@@ -135,19 +147,7 @@ final class PasswordSettingsViewController:
     iconView.tintColor = .systemBlue
     iconView.contentMode = .scaleAspectFit
 
-    let descriptionLabel = UILabel()
-    descriptionLabel.text =
-      mode == .setup
-      ? "设置后，重新启动 App，或离开 App 超过 3 分钟再返回时需要输入密码。"
-      : "修改或关闭密码前，需要先验证当前密码。"
-    descriptionLabel.font = .systemFont(ofSize: 15)
-    descriptionLabel.textColor = .secondaryLabel
-    descriptionLabel.textAlignment = .center
-    descriptionLabel.numberOfLines = 0
-
     currentPasswordField.isHidden = mode == .setup
-    primaryButton.configuration?.title =
-      mode == .setup ? "设置密码" : "修改密码"
     disablePasswordButton.isHidden = mode == .setup
 
     let stack = UIStackView(
@@ -248,6 +248,37 @@ final class PasswordSettingsViewController:
     )
   }
 
+  @objc private func languageDidChange() {
+    applyLocalization()
+  }
+
+  private func applyLocalization() {
+    title =
+      mode == .setup
+      ? L("password.setup_title")
+      : L("password.manage_title")
+    navigationItem.leftBarButtonItem = UIBarButtonItem(
+      title: L("common.cancel"),
+      primaryAction: UIAction { [weak self] _ in
+        self?.dismiss(animated: true)
+      }
+    )
+    currentPasswordField.placeholder = L("password.current")
+    newPasswordField.placeholder = L("password.new")
+    confirmationField.placeholder = L("password.confirm")
+    descriptionLabel.text =
+      mode == .setup
+      ? L("password.setup_description")
+      : L("password.manage_description")
+    primaryButton.configuration?.title =
+      mode == .setup
+      ? L("password.set")
+      : L("password.change")
+    disablePasswordButton.configuration?.title = L(
+      "password.disable"
+    )
+  }
+
   private func makePasswordField(
     placeholder: String,
     contentType: UITextContentType,
@@ -293,7 +324,7 @@ final class PasswordSettingsViewController:
 
     let currentPassword = currentPasswordField.text ?? ""
     if mode == .manage, currentPassword.isEmpty {
-      showError("请输入当前密码。")
+      showError(L("password.enter_current"))
       currentPasswordField.becomeFirstResponder()
       return
     }
@@ -322,7 +353,7 @@ final class PasswordSettingsViewController:
           self.dismiss(animated: true)
         case .success(false):
           self.currentPasswordField.text = nil
-          self.showError("当前密码不正确。")
+          self.showError(L("password.current_incorrect"))
           self.currentPasswordField.becomeFirstResponder()
         case .failure(let error):
           self.showError(error.localizedDescription)
@@ -336,12 +367,12 @@ final class PasswordSettingsViewController:
     confirmation: String
   ) -> Bool {
     guard (4...64).contains(newPassword.count) else {
-      showError("密码需为 4–64 个字符。")
+      showError(L("password.length"))
       newPasswordField.becomeFirstResponder()
       return false
     }
     guard newPassword == confirmation else {
-      showError("两次输入的新密码不一致。")
+      showError(L("password.mismatch"))
       confirmationField.becomeFirstResponder()
       return false
     }
@@ -352,20 +383,22 @@ final class PasswordSettingsViewController:
     guard !isSaving else { return }
     let currentPassword = currentPasswordField.text ?? ""
     guard !currentPassword.isEmpty else {
-      showError("请输入当前密码后再关闭密码。")
+      showError(L("password.enter_current_disable"))
       currentPasswordField.becomeFirstResponder()
       return
     }
 
     let alert = UIAlertController(
-      title: "关闭应用密码？",
-      message: "关闭后，启动 App 或从后台返回时将不再要求输入密码。",
+      title: L("password.disable_title"),
+      message: L("password.disable_message"),
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
+    alert.addAction(
+      UIAlertAction(title: L("common.cancel"), style: .cancel)
+    )
     alert.addAction(
       UIAlertAction(
-        title: "关闭密码",
+        title: L("password.disable_confirm"),
         style: .destructive
       ) { [weak self] _ in
         self?.disablePassword(currentPassword: currentPassword)
@@ -392,7 +425,7 @@ final class PasswordSettingsViewController:
           self.dismiss(animated: true)
         case .success(false):
           self.currentPasswordField.text = nil
-          self.showError("当前密码不正确。")
+          self.showError(L("password.current_incorrect"))
           self.currentPasswordField.becomeFirstResponder()
         case .failure(let error):
           self.showError(error.localizedDescription)

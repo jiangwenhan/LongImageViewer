@@ -1,0 +1,13 @@
+{
+  "sortMenuTitles" : {
+    "en" : "Image Sorting",
+    "ja" : "画像の並べ替え",
+    "zh-Hans" : "图片排序"
+  },
+  "sourceButtonTitles" : {
+    "en" : "Sources",
+    "ja" : "ソース",
+    "zh-Hans" : "来源"
+  },
+  "status" : "passed"
+}

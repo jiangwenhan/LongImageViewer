@@ -1,0 +1,115 @@
+"app.name" = "LongImageViewer";
+"common.ok" = "OK";
+"common.cancel" = "Cancel";
+"common.remove" = "Remove";
+"common.delete" = "Delete";
+"common.clear" = "Clear";
+"common.list_separator" = ", ";
+
+"language.title" = "Language";
+"language.message" = "Choose the language used by the app. The system file picker follows the device language.";
+
+"sort.accessibility" = "Sort";
+"sort.title" = "Image Sorting";
+"sort.creation_ascending" = "Creation Date: Ascending";
+"sort.creation_descending" = "Creation Date: Descending";
+"sort.filename_ascending" = "Filename: Ascending";
+"sort.filename_descending" = "Filename: Descending";
+"sort.clear_all" = "Clear All Images";
+
+"source.button" = "Sources";
+"source.title" = "Image Sources";
+"source.manage_folders" = "Manage Loaded Folders";
+"source.batch_add_folders" = "Batch Add Image Folders";
+"source.select_files" = "Select Image Files";
+"source.sync_folders" = "Sync Added Folders";
+"source.password_lock" = "Password & Lock";
+
+"empty.initial_title" = "No Long Images Yet";
+"empty.browse_locations" = "Browse images in On My iPhone, iCloud Drive,\nor a local Mac folder";
+"empty.browse_folder" = "Browse Image Folder";
+"empty.no_folders" = "No Image Folders Yet";
+"empty.folder_format" = "No images in %@";
+"empty.switch_hint" = "Swipe right to switch folders,\nor sync the current folder from Sources";
+
+"batch.explanation_title" = "Batch Add Image Folders";
+"batch.explanation_message" = "iPhone authorizes one folder at a time. After selecting one, return to the app and choose Continue Selecting. Import the batch when you are finished.";
+"batch.start" = "Start Selecting";
+"batch.selected_format" = "%d folders selected:\n%@";
+"batch.continue_title" = "Continue Selecting Folders?";
+"batch.continue" = "Continue Selecting";
+"batch.import_format" = "Import %d Folders";
+"batch.cancel" = "Cancel This Batch";
+"batch.added_one" = "Folder Added";
+"batch.added_format" = "%d Folders Added";
+
+"folder.status_available" = "Browse On My iPhone, iCloud Drive, or a local Mac folder";
+"folder.status_added_format" = "Added: %@";
+"folder.manual_import" = "Manual Import";
+"folder.generic" = "Image Folders";
+"folder.sync_complete" = "Folder Sync Complete";
+"folder.sync_added_format" = "Added %d";
+"folder.sync_updated_format" = "Updated %d";
+"folder.sync_removed_format" = "Removed %d";
+"folder.sync_failed_format" = "Read failed: %@";
+"folder.sync_unavailable_format" = "Unavailable: %@";
+
+"sidebar.title" = "Image Folders";
+"sidebar.subtitle" = "Only images in the selected folder are shown";
+"sidebar.close" = "Close Folder Sidebar";
+"sidebar.image_count_format" = "%d images";
+"sidebar.current" = "Current Folder";
+
+"clear.title" = "Clear All Images?";
+"clear.message" = "Image caches and folder associations will be removed from the app. Source files will not be changed.";
+
+"error.operation_failed" = "Operation Failed";
+"error.invalid_image_format" = "Unable to read image: %@";
+"error.tile_encoding_format" = "Unable to process image: %@";
+"error.no_images_imported" = "No images could be imported";
+"error.no_folders" = "No image folders have been added";
+"error.folder_access_format" = "Unable to access folder: %@";
+
+"collection.remove_manual_message" = "The Manual Import image copies and caches will be removed.";
+"collection.remove_folder_message" = "The folder and its caches will be removed. Source images will not be deleted.";
+"collection.remove_title_format" = "Remove “%@”?";
+"import.partial_failed" = "Some Images Were Not Imported";
+
+"memory.unavailable" = "Memory --";
+"memory.format" = "Memory %.0f MB";
+
+"password.error.already_set" = "An app password is already configured.";
+"password.error.not_set" = "No app password is configured.";
+"password.error.invalid_data" = "The saved app password data is invalid.";
+"password.error.random_format" = "Unable to generate secure password data. %@";
+"password.error.keychain_format" = "Unable to access Keychain. %@";
+"password.error.system_format" = "System error %d";
+"password.current" = "Current Password";
+"password.new" = "New Password (4–64 characters)";
+"password.confirm" = "Enter New Password Again";
+"password.disable" = "Disable App Password";
+"password.setup_title" = "Set App Password";
+"password.manage_title" = "Password & Lock";
+"password.setup_description" = "After setup, the password is required on cold launch or when returning after more than three minutes.";
+"password.manage_description" = "Verify the current password before changing or disabling it.";
+"password.set" = "Set Password";
+"password.change" = "Change Password";
+"password.enter_current" = "Enter the current password.";
+"password.current_incorrect" = "The current password is incorrect.";
+"password.length" = "The password must contain 4–64 characters.";
+"password.mismatch" = "The new passwords do not match.";
+"password.enter_current_disable" = "Enter the current password before disabling protection.";
+"password.disable_title" = "Disable App Password?";
+"password.disable_message" = "The app will no longer request a password on launch or after returning from the background.";
+"password.disable_confirm" = "Disable Password";
+
+"lock.privacy_title" = "LongImageViewer";
+"lock.read_error_format" = "Unable to read the app password. %@";
+"lock.enter_password" = "Enter the app password.";
+"lock.incorrect" = "Incorrect password. Try again.";
+"lock.verify_error_format" = "Unable to verify the password. %@";
+"lock.settings_error_title" = "Unable to Open Password Settings";
+"lock.password_placeholder" = "App Password";
+"lock.unlock" = "Unlock";
+"lock.title" = "LongImageViewer Is Locked";
+"lock.subtitle" = "Enter the app password to continue";

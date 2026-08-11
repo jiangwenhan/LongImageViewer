@@ -48,7 +48,9 @@ The script:
 15. Tests password setup, incorrect-password rejection, password changes, old-password invalidation, and password disabling.
 16. Verifies that 179 seconds in the background remains within the grace period and 180 seconds requires authentication.
 17. Installs a test password and verifies that a cold launch displays the lock screen.
-18. Captures the first page, folder sidebar, batch progress, lock screen, scrolling state, and final page.
+18. Launches in English, Simplified Chinese, and Japanese and validates representative strings.
+19. Switches through all three languages in one process and verifies immediate interface refresh.
+20. Captures localized batch sheets in all three languages in addition to the existing UI states.
 
 ## Results
 
@@ -85,6 +87,11 @@ The script:
 - Cold launch with protection displays the lock screen: passed
 - Background duration below three minutes does not require a password: passed
 - Background duration of three minutes requires a password: passed
+- English interface resources and cold launch: passed
+- Simplified Chinese interface resources and cold launch: passed
+- Japanese interface resources and cold launch: passed
+- In-process switching updates Sources and sorting immediately: passed
+- Selected language persists in app preferences: passed
 - Mac Catalyst arm64 release build: passed
 
 ### Warm Scrolling Performance
@@ -104,15 +111,15 @@ Warm-run result:
 
 This run includes first-time decoding:
 
-- Two-folder batch add and metadata scan: 0.14 seconds
+- Two-folder batch add and metadata scan: 0.13 seconds
 - Expected tile count: 30
 - Tiles materialized before scrolling: 3
 - Tiles materialized after reaching the end: 30
 - Average frame rate: 60.0 FPS
 - Frames over 22 ms: 0
 - Pages visited: 6/6
-- Peak process memory: approximately 113.3 MiB
-- Final process memory: approximately 93.9 MiB
+- Peak process memory: approximately 108.3 MiB
+- Final process memory: approximately 89.5 MiB
 
 Only 3 of 30 tiles exist after folder opening, confirming that folder selection does not eagerly render every image. Folder switching produces 6 pages for the primary folder and 2 for the secondary folder. Removing the secondary folder reduces the sidebar from two entries to one while leaving the source directory intact.
 
@@ -138,3 +145,11 @@ Physical-device performance should still be confirmed on an iPhone 13 Pro Max wi
 - `Artifacts/Simulator/folder-management-result.json`: folder-removal result
 - `Artifacts/Simulator/app-lock-result.json`: startup lock and grace-period boundary result
 - `Artifacts/Simulator/password-store-result.json`: password setup, verification, change, and disable result
+- `Artifacts/Simulator/localization-en.json`: English string validation
+- `Artifacts/Simulator/localization-zh-Hans.json`: Simplified Chinese string validation
+- `Artifacts/Simulator/localization-ja.json`: Japanese string validation
+- `Artifacts/Simulator/localization-persisted.json`: language persistence across relaunch
+- `Artifacts/Simulator/language-switch-result.json`: in-process language-switch validation
+- `Artifacts/Simulator/language-en.png`: English batch-selection UI
+- `Artifacts/Simulator/language-zh-Hans.png`: Simplified Chinese batch-selection UI
+- `Artifacts/Simulator/language-ja.png`: Japanese batch-selection UI

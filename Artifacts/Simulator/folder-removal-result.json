@@ -1,7 +1,7 @@
 {
-  "averageFPS" : 60,
+  "averageFPS" : 60.100000000000001,
   "contentHeight" : 15638,
-  "directorySyncDurationSeconds" : 0.10000000000000001,
+  "directorySyncDurationSeconds" : 0.059999999999999998,
   "documentCount" : 5,
   "durationSeconds" : 18,
   "expectedTileCount" : 29,
@@ -9,7 +9,7 @@
   "folderCount" : 2,
   "frameCount" : 1081,
   "initialMaterializedTileCount" : 29,
-  "peakMemoryBytes" : 107777048,
+  "peakMemoryBytes" : 107383808,
   "selectedFolderTitle" : "SimulatorFixtures",
   "sidebarItemCount" : 2,
   "slowFrameCount" : 0,
@@ -44,6 +44,6 @@
     ]
   },
   "status" : "passed",
-  "usedMemoryBytes" : 85773312,
+  "usedMemoryBytes" : 85675008,
   "visitedPageCount" : 5
 }

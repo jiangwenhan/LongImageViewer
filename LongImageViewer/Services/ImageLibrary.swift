@@ -27,15 +27,15 @@ enum ImageLibraryError: LocalizedError {
   var errorDescription: String? {
     switch self {
     case .invalidImage(let filename):
-      return "无法读取图片：\(filename)"
+      return L("error.invalid_image_format", filename)
     case .tileEncodingFailed(let filename):
-      return "无法处理图片：\(filename)"
+      return L("error.tile_encoding_format", filename)
     case .noImagesImported:
-      return "没有可导入的图片"
+      return L("error.no_images_imported")
     case .noFolders:
-      return "还没有添加图片文件夹"
+      return L("error.no_folders")
     case .folderAccessFailed(let folderName):
-      return "无法访问文件夹：\(folderName)"
+      return L("error.folder_access_format", folderName)
     }
   }
 }

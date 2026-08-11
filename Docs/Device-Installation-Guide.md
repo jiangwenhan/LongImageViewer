@@ -90,7 +90,7 @@ A valid configuration shows `Apple Development` as the signing certificate and n
 4. Xcode builds, signs, installs, and launches the app.
 5. The first installation may pause while the device prepares debugging services.
 
-After installation, the app appears on the Home Screen as `长图阅览`.
+After installation, the Home Screen name follows the device language: `LongImageViewer`, `长图阅览`, or `ロング画像ビューア`.
 
 ## 7. Trust the Developer
 
@@ -104,9 +104,18 @@ Some personal signatures may require manual trust on first launch:
 
 Newer iOS versions may validate the signature online instead. Keep the device online if validation is requested.
 
-## 8. Import and Browse Images
+## 8. Select the Interface Language
 
-The current app UI is Chinese. English descriptions below include the exact UI labels.
+The app supports English, Simplified Chinese, and Japanese. It follows a supported device language on first launch and falls back to English for other device languages.
+
+1. Tap Sources in the lower-right corner.
+2. Tap Language.
+3. Choose `English`, `简体中文`, or `日本語`.
+4. The app-owned interface updates immediately and remembers the selection.
+
+The system Files picker and Home Screen display name continue to follow the device language.
+
+## 9. Import and Browse Images
 
 1. On first launch, tap `浏览图片文件夹` (Browse Image Folder).
 2. In the system Files picker, open On My iPhone or iCloud Drive.
@@ -142,7 +151,7 @@ Folder mode stores only screen-width tile caches inside the app. It does not cop
 
 With no password configured, the app opens directly. Password recovery and reset are intentionally unsupported. Removing and reinstalling the app does not guarantee removal of the Keychain credential, so retain the password securely.
 
-## 9. Common Signing Problems
+## 10. Common Signing Problems
 
 ### `Signing for "LongImageViewer" requires a development team`
 
@@ -167,27 +176,28 @@ Enable Developer Mode using section 4, then restart the iPhone.
 
 Free Apple ID development signatures normally expire after seven days. Reconnect the iPhone and press `Command + R` in Xcode to reinstall.
 
-## 10. Install an Updated Build
+## 11. Install an Updated Build
 
 Connect the same iPhone and press `Command + R` again. Xcode installs the new build over the old one, and app-managed image data normally remains. Deleting the app removes its image copies, but the Keychain password may remain.
 
-## 11. Acceptance Checklist
+## 12. Acceptance Checklist
 
-1. The `长图阅览` icon appears and the app launches.
-2. The initial screen shows `浏览图片文件夹`.
-3. The system picker can access On My iPhone and iCloud Drive.
-4. Selected images fill the screen width and scroll continuously.
-5. The overlay shows page count, filename, and live memory.
-6. All four sorting modes work.
-7. Sources can add folders, import individual files, and trigger synchronization.
-8. Password & Lock can enable protection.
-9. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
+1. The localized app icon name appears and the app launches.
+2. English, Simplified Chinese, and Japanese can be selected from Sources → Language.
+3. The initial screen shows the browse-folder action in the selected language.
+4. The system picker can access On My iPhone and iCloud Drive.
+5. Selected images fill the screen width and scroll continuously.
+6. The overlay shows page count, filename, and live memory.
+7. All four sorting modes work.
+8. Sources can add folders, import individual files, and trigger synchronization.
+9. Password & Lock can enable protection.
+10. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
 
-## 12. Verified Project Configuration
+## 13. Verified Project Configuration
 
 - Device target: iPhone 13 Pro Max
 - Minimum OS: iOS 16.0
-- Display name: `长图阅览`
+- Localized display names: `LongImageViewer`, `长图阅览`, `ロング画像ビューア`
 - Bundle Identifier: `com.trae.LongImageViewer`
 - Signing: Automatic
 - Device architecture: arm64

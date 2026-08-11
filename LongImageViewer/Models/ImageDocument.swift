@@ -63,13 +63,13 @@ enum ImageSortOption: String, CaseIterable {
   var title: String {
     switch self {
     case .creationAscending:
-      return "创建时间顺排"
+      return L("sort.creation_ascending")
     case .creationDescending:
-      return "创建时间倒排"
+      return L("sort.creation_descending")
     case .filenameAscending:
-      return "文件名顺排"
+      return L("sort.filename_ascending")
     case .filenameDescending:
-      return "文件名倒排"
+      return L("sort.filename_descending")
     }
   }
 

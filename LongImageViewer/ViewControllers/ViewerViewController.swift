@@ -141,7 +141,7 @@ final class ViewerViewController: UIViewController {
       trailing: 12
     )
     let button = UIButton(configuration: configuration)
-    button.accessibilityLabel = "排序"
+    button.accessibilityLabel = L("sort.accessibility")
     button.translatesAutoresizingMaskIntoConstraints = false
     return button
   }()
@@ -155,7 +155,7 @@ final class ViewerViewController: UIViewController {
     configuration.baseForegroundColor = .white
     configuration.cornerStyle = .capsule
     configuration.image = UIImage(systemName: "folder")
-    configuration.title = "来源"
+    configuration.title = L("source.button")
     configuration.imagePadding = 5
     configuration.contentInsets = NSDirectionalEdgeInsets(
       top: 10,
@@ -174,7 +174,7 @@ final class ViewerViewController: UIViewController {
   )
   private let emptyTitleLabel: UILabel = {
     let label = UILabel()
-    label.text = "还没有长图"
+    label.text = L("empty.initial_title")
     label.font = .systemFont(ofSize: 22, weight: .bold)
     label.textColor = .white
     label.textAlignment = .center
@@ -182,7 +182,7 @@ final class ViewerViewController: UIViewController {
   }()
   private let emptySubtitleLabel: UILabel = {
     let label = UILabel()
-    label.text = "浏览“我的 iPhone”、iCloud Drive\n或 Mac 本地目录中的图片"
+    label.text = L("empty.browse_locations")
     label.font = .systemFont(ofSize: 15, weight: .regular)
     label.textColor = UIColor(white: 0.72, alpha: 1)
     label.textAlignment = .center
@@ -191,7 +191,7 @@ final class ViewerViewController: UIViewController {
   }()
   private let emptyImportButton: UIButton = {
     var configuration = UIButton.Configuration.filled()
-    configuration.title = "浏览图片文件夹"
+    configuration.title = L("empty.browse_folder")
     configuration.image = UIImage(systemName: "folder")
     configuration.imagePadding = 8
     configuration.cornerStyle = .large
@@ -228,6 +228,7 @@ final class ViewerViewController: UIViewController {
     view.backgroundColor = .black
     setupViews()
     setupActions()
+    applyLocalization()
     startMemoryUpdates()
     restoreFolderSelection()
     reloadLibrary(preservingPage: false)
@@ -235,6 +236,12 @@ final class ViewerViewController: UIViewController {
       self,
       selector: #selector(applicationDidBecomeActive),
       name: UIApplication.didBecomeActiveNotification,
+      object: nil
+    )
+    NotificationCenter.default.addObserver(
+      self,
+      selector: #selector(languageDidChange),
+      name: AppLocalization.didChangeNotification,
       object: nil
     )
   }
@@ -274,6 +281,8 @@ final class ViewerViewController: UIViewController {
     #if DEBUG
       importSimulatorFixturesIfRequested()
       handleDebugSidebarArgumentsIfNeeded()
+      reportLocalizationStateIfRequested()
+      runLanguageSwitchSmokeTestIfRequested()
     #endif
   }
 
@@ -529,28 +538,44 @@ final class ViewerViewController: UIViewController {
     }
 
     let deleteAction = UIAction(
-      title: "清空全部图片",
+      title: L("sort.clear_all"),
       image: UIImage(systemName: "trash"),
       attributes: .destructive
     ) { [weak self] _ in
       self?.confirmDeleteAll()
     }
     return UIMenu(
-      title: "图片排序",
+      title: L("sort.title"),
       children: actions + [deleteAction]
     )
   }
 
+  private func applyLocalization() {
+    sortButton.accessibilityLabel = L("sort.accessibility")
+    addButton.configuration?.title = L("source.button")
+    emptyImportButton.configuration?.title = L(
+      "empty.browse_folder"
+    )
+    sortButton.menu = makeSortMenu()
+    updateEmptyState()
+    updateFolderSidebar()
+    updateMemoryLabel()
+  }
+
+  @objc private func languageDidChange() {
+    applyLocalization()
+  }
+
   @objc private func sourceButtonTapped() {
     let sheet = UIAlertController(
-      title: "图片来源",
+      title: L("source.title"),
       message: folderStatusMessage,
       preferredStyle: .actionSheet
     )
     if !sidebarItems.isEmpty {
       sheet.addAction(
         UIAlertAction(
-          title: "管理已加载文件夹",
+          title: L("source.manage_folders"),
           style: .default
         ) { [weak self] _ in
           self?.showFolderSidebar()
@@ -559,7 +584,7 @@ final class ViewerViewController: UIViewController {
     }
     sheet.addAction(
       UIAlertAction(
-        title: "批量添加图片文件夹",
+        title: L("source.batch_add_folders"),
         style: .default
       ) { [weak self] _ in
         self?.beginFolderBatchSelection()
@@ -567,7 +592,7 @@ final class ViewerViewController: UIViewController {
     )
     sheet.addAction(
       UIAlertAction(
-        title: "选择图片文件",
+        title: L("source.select_files"),
         style: .default
       ) { [weak self] _ in
         self?.presentImagePicker()
@@ -575,7 +600,7 @@ final class ViewerViewController: UIViewController {
     )
     sheet.addAction(
       UIAlertAction(
-        title: "同步已添加文件夹",
+        title: L("source.sync_folders"),
         style: .default
       ) { [weak self] _ in
         self?.syncFolders(showResult: true)
@@ -583,13 +608,48 @@ final class ViewerViewController: UIViewController {
     )
     sheet.addAction(
       UIAlertAction(
-        title: "密码与锁定",
+        title: L("source.password_lock"),
         style: .default
       ) { [weak self] _ in
         self?.onPasswordSettingsRequested?()
       }
     )
-    sheet.addAction(UIAlertAction(title: "取消", style: .cancel))
+    sheet.addAction(
+      UIAlertAction(
+        title: L("language.title"),
+        style: .default
+      ) { [weak self] _ in
+        self?.presentLanguagePicker()
+      }
+    )
+    sheet.addAction(
+      UIAlertAction(title: L("common.cancel"), style: .cancel)
+    )
+    sheet.popoverPresentationController?.sourceView = addButton
+    sheet.popoverPresentationController?.sourceRect = addButton.bounds
+    present(sheet, animated: true)
+  }
+
+  private func presentLanguagePicker() {
+    let sheet = UIAlertController(
+      title: L("language.title"),
+      message: L("language.message"),
+      preferredStyle: .actionSheet
+    )
+    for language in AppLanguage.allCases {
+      let title =
+        language == AppLocalization.shared.language
+        ? "✓ \(language.nativeDisplayName)"
+        : language.nativeDisplayName
+      sheet.addAction(
+        UIAlertAction(title: title, style: .default) { _ in
+          AppLocalization.shared.setLanguage(language)
+        }
+      )
+    }
+    sheet.addAction(
+      UIAlertAction(title: L("common.cancel"), style: .cancel)
+    )
     sheet.popoverPresentationController?.sourceView = addButton
     sheet.popoverPresentationController?.sourceRect = addButton.bounds
     present(sheet, animated: true)
@@ -607,14 +667,13 @@ final class ViewerViewController: UIViewController {
       presentFolderPicker()
     #else
       let alert = UIAlertController(
-        title: "批量添加图片文件夹",
-        message:
-          "iPhone 系统每次只授权一个文件夹。选择后返回 App，点击“继续选择”添加下一个；全部选完后再统一导入。",
+        title: L("batch.explanation_title"),
+        message: L("batch.explanation_message"),
         preferredStyle: .alert
       )
       alert.addAction(
         UIAlertAction(
-          title: "开始选择",
+          title: L("batch.start"),
           style: .default
         ) { [weak self] _ in
           self?.presentFolderPicker()
@@ -622,7 +681,7 @@ final class ViewerViewController: UIViewController {
       )
       alert.addAction(
         UIAlertAction(
-          title: "取消",
+          title: L("common.cancel"),
           style: .cancel
         ) { [weak self] _ in
           self?.resetFolderBatchSelection()
@@ -685,17 +744,19 @@ final class ViewerViewController: UIViewController {
     }
 
     let folderNames = pendingFolderURLs.map(\.lastPathComponent)
-    let message =
-      "已选择 \(folderNames.count) 个文件夹：\n"
-      + folderNames.joined(separator: "\n")
+    let message = L(
+      "batch.selected_format",
+      folderNames.count,
+      folderNames.joined(separator: "\n")
+    )
     let sheet = UIAlertController(
-      title: "继续选择文件夹？",
+      title: L("batch.continue_title"),
       message: message,
       preferredStyle: .actionSheet
     )
     sheet.addAction(
       UIAlertAction(
-        title: "继续选择",
+        title: L("batch.continue"),
         style: .default
       ) { [weak self] _ in
         self?.presentFolderPicker()
@@ -703,7 +764,7 @@ final class ViewerViewController: UIViewController {
     )
     sheet.addAction(
       UIAlertAction(
-        title: "导入 \(folderNames.count) 个文件夹",
+        title: L("batch.import_format", folderNames.count),
         style: .default
       ) { [weak self] _ in
         self?.finishFolderBatchSelection()
@@ -711,7 +772,7 @@ final class ViewerViewController: UIViewController {
     )
     sheet.addAction(
       UIAlertAction(
-        title: "取消本次添加",
+        title: L("batch.cancel"),
         style: .cancel
       ) { [weak self] _ in
         self?.resetFolderBatchSelection()
@@ -748,8 +809,8 @@ final class ViewerViewController: UIViewController {
           summary,
           title:
             selectedURLs.count == 1
-            ? "文件夹已添加"
-            : "已添加 \(selectedURLs.count) 个文件夹"
+            ? L("batch.added_one")
+            : L("batch.added_format", selectedURLs.count)
         )
       case .failure(let error):
         self.presentError(error)
@@ -764,9 +825,14 @@ final class ViewerViewController: UIViewController {
 
   private var folderStatusMessage: String {
     guard !library.folderDisplayNames.isEmpty else {
-      return "可进入“我的 iPhone”、iCloud Drive，或 Mac 本地目录"
+      return L("folder.status_available")
     }
-    return "已添加：\(library.folderDisplayNames.joined(separator: "、"))"
+    return L(
+      "folder.status_added_format",
+      library.folderDisplayNames.joined(
+        separator: L("common.list_separator")
+      )
+    )
   }
 
   private var sidebarItems: [FolderSidebarItem] {
@@ -782,7 +848,7 @@ final class ViewerViewController: UIViewController {
       items.append(
         FolderSidebarItem(
           folderID: nil,
-          title: "手动导入",
+          title: L("folder.manual_import"),
           imageCount: library.imageCount(in: nil),
           isAvailable: true
         )
@@ -866,11 +932,11 @@ final class ViewerViewController: UIViewController {
 
   private var selectedCollectionTitle: String {
     if selectsStandaloneFolder {
-      return "手动导入"
+      return L("folder.manual_import")
     }
     return library.folders.first {
       $0.id == selectedFolderID
-    }?.displayName ?? "图片文件夹"
+    }?.displayName ?? L("folder.generic")
   }
 
   @objc private func openSidebarSwipeRecognized() {
@@ -993,7 +1059,7 @@ final class ViewerViewController: UIViewController {
         if showResult {
           self.presentFolderSyncSummary(
             summary,
-            title: "文件夹同步完成"
+            title: L("folder.sync_complete")
           )
         }
       case .failure(let error):
@@ -1009,16 +1075,28 @@ final class ViewerViewController: UIViewController {
     title: String
   ) {
     var lines = [
-      "新增 \(summary.addedCount) 张",
-      "更新 \(summary.updatedCount) 张",
-      "移除 \(summary.removedCount) 张",
+      L("folder.sync_added_format", summary.addedCount),
+      L("folder.sync_updated_format", summary.updatedCount),
+      L("folder.sync_removed_format", summary.removedCount),
     ]
     if !summary.failedFilenames.isEmpty {
-      lines.append("读取失败：\(summary.failedFilenames.joined(separator: "、"))")
+      lines.append(
+        L(
+          "folder.sync_failed_format",
+          summary.failedFilenames.joined(
+            separator: L("common.list_separator")
+          )
+        )
+      )
     }
     if !summary.unavailableFolders.isEmpty {
       lines.append(
-        "无法访问：\(summary.unavailableFolders.joined(separator: "、"))"
+        L(
+          "folder.sync_unavailable_format",
+          summary.unavailableFolders.joined(
+            separator: L("common.list_separator")
+          )
+        )
       )
     }
 
@@ -1027,7 +1105,9 @@ final class ViewerViewController: UIViewController {
       message: lines.joined(separator: "\n"),
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "好", style: .default))
+    alert.addAction(
+      UIAlertAction(title: L("common.ok"), style: .default)
+    )
     present(alert, animated: true)
   }
 
@@ -1053,13 +1133,15 @@ final class ViewerViewController: UIViewController {
     guard !documents.isEmpty || !library.folders.isEmpty else { return }
 
     let alert = UIAlertController(
-      title: "清空全部图片？",
-      message: "图片缓存和文件夹关联将从 App 中删除，此操作不会影响原文件。",
+      title: L("clear.title"),
+      message: L("clear.message"),
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "清空", style: .destructive) {
+      UIAlertAction(title: L("common.cancel"), style: .cancel)
+    )
+    alert.addAction(
+      UIAlertAction(title: L("common.clear"), style: .destructive) {
         [weak self] _ in
         self?.setImporting(true)
         self?.library.deleteAll { result in
@@ -1121,12 +1203,12 @@ final class ViewerViewController: UIViewController {
     emptyStateView.isHidden = !isEmpty
     emptyTitleLabel.text =
       sidebarItems.isEmpty
-      ? "还没有图片文件夹"
-      : "\(selectedCollectionTitle) 暂无图片"
+      ? L("empty.no_folders")
+      : L("empty.folder_format", selectedCollectionTitle)
     emptySubtitleLabel.text =
       sidebarItems.isEmpty
-      ? "浏览“我的 iPhone”、iCloud Drive\n或 Mac 本地目录中的图片"
-      : "右划打开侧边栏切换文件夹\n或通过“来源”同步当前目录"
+      ? L("empty.browse_locations")
+      : L("empty.switch_hint")
     overlayView.isHidden = false
     sortButton.isHidden = isEmpty
     addButton.isHidden = false
@@ -1211,15 +1293,101 @@ final class ViewerViewController: UIViewController {
 
   private func presentError(_ error: Error) {
     let alert = UIAlertController(
-      title: "操作失败",
+      title: L("error.operation_failed"),
       message: error.localizedDescription,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "好", style: .default))
+    alert.addAction(
+      UIAlertAction(title: L("common.ok"), style: .default)
+    )
     present(alert, animated: true)
   }
 
   #if DEBUG
+    private func reportLocalizationStateIfRequested() {
+      guard
+        ProcessInfo.processInfo.arguments.contains(
+          "--report-localization-state"
+        )
+      else {
+        return
+      }
+
+      let language = AppLocalization.shared.language
+      let result: [String: Any] = [
+        "status": "passed",
+        "language": language.rawValue,
+        "sourceButton": addButton.configuration?.title ?? "",
+        "emptyTitle": L("empty.no_folders"),
+        "sortTitle": L("sort.title"),
+        "languageTitle": L("language.title"),
+        "lockTitle": L("lock.title"),
+      ]
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "localization-\(language.rawValue).json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
+    }
+
+    private func runLanguageSwitchSmokeTestIfRequested() {
+      guard
+        ProcessInfo.processInfo.arguments.contains(
+          "--language-switch-smoke-test"
+        )
+      else {
+        return
+      }
+
+      let originalLanguage = AppLocalization.shared.language
+      var sourceButtonTitles: [String: String] = [:]
+      var sortMenuTitles: [String: String] = [:]
+      for language in AppLanguage.allCases {
+        AppLocalization.shared.setLanguage(language)
+        sourceButtonTitles[language.rawValue] =
+          addButton.configuration?.title ?? ""
+        sortMenuTitles[language.rawValue] = sortButton.menu?.title ?? ""
+      }
+      AppLocalization.shared.setLanguage(originalLanguage)
+
+      let passed =
+        sourceButtonTitles.values.filter { !$0.isEmpty }.count == 3
+        && Set(sourceButtonTitles.values).count == 3
+        && Set(sortMenuTitles.values).count == 3
+      let result: [String: Any] = [
+        "status": passed ? "passed" : "failed",
+        "sourceButtonTitles": sourceButtonTitles,
+        "sortMenuTitles": sortMenuTitles,
+      ]
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "language-switch-result.json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
+    }
+
     private func importSimulatorFixturesIfRequested() {
       let arguments = ProcessInfo.processInfo.arguments
       guard
@@ -1660,18 +1828,20 @@ extension ViewerViewController: FolderSidebarViewDelegate {
   ) {
     let message: String
     if item.folderID == nil {
-      message = "将清理“手动导入”的图片副本和缓存。"
+      message = L("collection.remove_manual_message")
     } else {
-      message = "将移除该文件夹及其缓存，不会删除源目录中的图片。"
+      message = L("collection.remove_folder_message")
     }
     let alert = UIAlertController(
-      title: "移除“\(item.title)”？",
+      title: L("collection.remove_title_format", item.title),
       message: message,
       preferredStyle: .alert
     )
-    alert.addAction(UIAlertAction(title: "取消", style: .cancel))
     alert.addAction(
-      UIAlertAction(title: "移除", style: .destructive) {
+      UIAlertAction(title: L("common.cancel"), style: .cancel)
+    )
+    alert.addAction(
+      UIAlertAction(title: L("common.remove"), style: .destructive) {
         [weak self] _ in
         guard let self else { return }
         let removesCurrentCollection =
@@ -1791,12 +1961,12 @@ extension ViewerViewController: UIDocumentPickerDelegate {
           separator: "\n"
         )
         let alert = UIAlertController(
-          title: "部分图片未导入",
+          title: L("import.partial_failed"),
           message: failedNames,
           preferredStyle: .alert
         )
         alert.addAction(
-          UIAlertAction(title: "好", style: .default)
+          UIAlertAction(title: L("common.ok"), style: .default)
         )
         self.present(alert, animated: true)
 

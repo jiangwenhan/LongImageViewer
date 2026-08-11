@@ -296,6 +296,114 @@ sleep 3
 xcrun simctl io "$DEVICE_UDID" screenshot \
   "$ARTIFACTS_DIR/folder-batch-progress.png"
 
+for APP_LANGUAGE in en zh-Hans ja; do
+  LOCALIZATION_RESULT="$DATA_CONTAINER/Documents/localization-$APP_LANGUAGE.json"
+  rm -f "$LOCALIZATION_RESULT"
+  xcrun simctl launch \
+    --terminate-running-process \
+    "$DEVICE_UDID" \
+    "$BUNDLE_ID" \
+    --reset-app-password \
+    --app-language "$APP_LANGUAGE" \
+    --report-localization-state \
+    --show-folder-batch-progress
+
+  for _ in {1..30}; do
+    if [[ -f "$LOCALIZATION_RESULT" ]]; then
+      break
+    fi
+    sleep 1
+  done
+
+  case "$APP_LANGUAGE" in
+    en)
+      EXPECTED_SOURCE="Sources"
+      EXPECTED_EMPTY="No Image Folders Yet"
+      EXPECTED_SORT="Image Sorting"
+      ;;
+    zh-Hans)
+      EXPECTED_SOURCE="来源"
+      EXPECTED_EMPTY="还没有图片文件夹"
+      EXPECTED_SORT="图片排序"
+      ;;
+    ja)
+      EXPECTED_SOURCE="ソース"
+      EXPECTED_EMPTY="画像フォルダがありません"
+      EXPECTED_SORT="画像の並べ替え"
+      ;;
+  esac
+
+  jq -e \
+    --arg language "$APP_LANGUAGE" \
+    --arg source "$EXPECTED_SOURCE" \
+    --arg empty "$EXPECTED_EMPTY" \
+    --arg sort "$EXPECTED_SORT" '
+      .status == "passed"
+      and .language == $language
+      and .sourceButton == $source
+      and .emptyTitle == $empty
+      and .sortTitle == $sort
+    ' "$LOCALIZATION_RESULT" >/dev/null
+  cp "$LOCALIZATION_RESULT" \
+    "$ARTIFACTS_DIR/localization-$APP_LANGUAGE.json"
+  sleep 3
+  xcrun simctl io "$DEVICE_UDID" screenshot \
+    "$ARTIFACTS_DIR/language-$APP_LANGUAGE.png"
+done
+
+PERSISTED_LANGUAGE_RESULT="$DATA_CONTAINER/Documents/localization-ja.json"
+rm -f "$PERSISTED_LANGUAGE_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --report-localization-state
+
+for _ in {1..30}; do
+  if [[ -f "$PERSISTED_LANGUAGE_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .language == "ja"
+  and .sourceButton == "ソース"
+' "$PERSISTED_LANGUAGE_RESULT" >/dev/null
+cp "$PERSISTED_LANGUAGE_RESULT" \
+  "$ARTIFACTS_DIR/localization-persisted.json"
+
+LANGUAGE_SWITCH_RESULT="$DATA_CONTAINER/Documents/language-switch-result.json"
+rm -f "$LANGUAGE_SWITCH_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --app-language en \
+  --language-switch-smoke-test
+
+for _ in {1..30}; do
+  if [[ -f "$LANGUAGE_SWITCH_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .sourceButtonTitles.en == "Sources"
+  and .sourceButtonTitles["zh-Hans"] == "来源"
+  and .sourceButtonTitles.ja == "ソース"
+  and .sortMenuTitles.en == "Image Sorting"
+  and .sortMenuTitles["zh-Hans"] == "图片排序"
+  and .sortMenuTitles.ja == "画像の並べ替え"
+' "$LANGUAGE_SWITCH_RESULT" >/dev/null
+cp "$LANGUAGE_SWITCH_RESULT" \
+  "$ARTIFACTS_DIR/language-switch-result.json"
+
 PASSWORD_STORE_RESULT="$DATA_CONTAINER/Documents/password-store-result.json"
 rm -f "$PASSWORD_STORE_RESULT"
 xcrun simctl launch \

@@ -59,6 +59,8 @@
 "sidebar.close" = "フォルダサイドバーを閉じる";
 "sidebar.image_count_format" = "%d枚の画像";
 "sidebar.current" = "現在のフォルダ";
+"sidebar.expand" = "サブフォルダを展開";
+"sidebar.collapse" = "サブフォルダを折りたたむ";
 
 "clear.title" = "すべての画像を消去しますか？";
 "clear.message" = "画像キャッシュとフォルダの関連付けをアプリから削除します。元のファイルは変更されません。";

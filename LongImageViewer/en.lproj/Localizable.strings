@@ -59,6 +59,8 @@
 "sidebar.close" = "Close Folder Sidebar";
 "sidebar.image_count_format" = "%d images";
 "sidebar.current" = "Current Folder";
+"sidebar.expand" = "Expand Subfolders";
+"sidebar.collapse" = "Collapse Subfolders";
 
 "clear.title" = "Clear All Images?";
 "clear.message" = "Image caches and folder associations will be removed from the app. Source files will not be changed.";

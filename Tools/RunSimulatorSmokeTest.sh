@@ -274,6 +274,41 @@ sleep 1
 xcrun simctl io "$DEVICE_UDID" screenshot \
   "$ARTIFACTS_DIR/folder-sidebar-child.png"
 
+FOLDER_COLLAPSE_RESULT="$DATA_CONTAINER/Documents/folder-collapse-result.json"
+rm -f "$FOLDER_COLLAPSE_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
+  --collapse-primary-folder \
+  --show-folder-sidebar
+
+for _ in {1..30}; do
+  if [[ -f "$FOLDER_COLLAPSE_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .folderCollapsed == true
+  and .totalItemCount == 5
+  and .expandedItemCount == 5
+  and .collapsedItemCount == 2
+  and .reexpandedItemCount == 5
+  and .selectedVisibleTitle == "SimulatorFixtures"
+  and .pageAfterCollapse == 2
+' "$FOLDER_COLLAPSE_RESULT" >/dev/null
+cp "$FOLDER_COLLAPSE_RESULT" \
+  "$ARTIFACTS_DIR/folder-collapse-result.json"
+sleep 1
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/folder-sidebar-collapsed.png"
+
 FOLDER_SELECTION_RESULT="$DATA_CONTAINER/Documents/folder-selection-result.json"
 rm -f "$FOLDER_SELECTION_RESULT"
 xcrun simctl launch \

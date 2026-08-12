@@ -38,7 +38,7 @@ Opening a folder automatically adds images in that root and in each direct subfo
 
 Within an added root, the viewer orders root-level images first, followed by direct subfolders in filename order. Each directory applies the selected image sort independently. The last image of one directory and the first image of the next share the same continuous scroll.
 
-The sidebar displays added roots and indented direct subfolders, but never individual images. Tapping a subfolder jumps to its first image without narrowing or replacing the continuous browsing sequence. Swipe a root row left to remove the root, its descendants, and app caches without deleting source files.
+The sidebar displays added roots and indented direct subfolders, but never individual images. Use the chevron on a root row to collapse or expand its direct subfolders; tapping the root name still navigates to its root-level images. Tapping a subfolder jumps to its first image without narrowing or replacing the continuous browsing sequence. Swipe a root row left to remove the root, its descendants, and app caches without deleting source files.
 
 The same project supports iPhone and Mac Catalyst. On macOS, use the system picker to access local folders or iCloud Drive. A local Catalyst release build is produced at:
 

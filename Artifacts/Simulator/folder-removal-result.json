@@ -33,13 +33,13 @@
   ],
   "directorySyncDurationSeconds" : 0.16,
   "documentCount" : 5,
-  "durationSeconds" : 18.02,
+  "durationSeconds" : 18.010000000000002,
   "expectedTileCount" : 29,
   "finalMaterializedTileCount" : 29,
   "folderCount" : 2,
   "frameCount" : 1081,
   "initialMaterializedTileCount" : 29,
-  "peakMemoryBytes" : 106007648,
+  "peakMemoryBytes" : 107809888,
   "selectedFolderTitle" : "SimulatorFixtures",
   "sidebarItemCount" : 5,
   "slowFrameCount" : 0,
@@ -74,6 +74,6 @@
     ]
   },
   "status" : "passed",
-  "usedMemoryBytes" : 86199368,
+  "usedMemoryBytes" : 85740616,
   "visitedPageCount" : 5
 }

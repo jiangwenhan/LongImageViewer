@@ -6,6 +6,7 @@ struct FolderSidebarItem: Equatable {
   let title: String
   let imageCount: Int
   let depth: Int
+  let hasChildren: Bool
   let canSelect: Bool
   let canDelete: Bool
 }
@@ -26,6 +27,7 @@ final class FolderSidebarView: UIView {
   weak var delegate: FolderSidebarViewDelegate?
 
   private var items: [FolderSidebarItem] = []
+  private var collapsedFolderIDs: Set<UUID> = []
   private var selectedFolderID: UUID?
   private var selectedDirectoryRelativePath: String?
   private var selectsStandaloneFolder = false
@@ -171,6 +173,12 @@ final class FolderSidebarView: UIView {
     self.selectedDirectoryRelativePath =
       selectedDirectoryRelativePath
     self.selectsStandaloneFolder = selectsStandaloneFolder
+    let availableFolderIDs = Set(
+      items.compactMap { item in
+        item.depth == 0 ? item.folderID : nil
+      }
+    )
+    collapsedFolderIDs.formIntersection(availableFolderIDs)
     tableView.reloadData()
   }
 
@@ -193,11 +201,128 @@ final class FolderSidebarView: UIView {
     if item.folderID == nil {
       return selectsStandaloneFolder
     }
+    if
+      item.depth == 0,
+      let folderID = item.folderID,
+      collapsedFolderIDs.contains(folderID),
+      folderID == selectedFolderID
+    {
+      return true
+    }
     return !selectsStandaloneFolder
       && item.folderID == selectedFolderID
       && item.directoryRelativePath
         == selectedDirectoryRelativePath
   }
+
+  private var visibleItems: [FolderSidebarItem] {
+    items.filter { item in
+      guard
+        item.depth > 0,
+        let folderID = item.folderID
+      else {
+        return true
+      }
+      return !collapsedFolderIDs.contains(folderID)
+    }
+  }
+
+  private func toggleFolder(_ folderID: UUID) {
+    if collapsedFolderIDs.contains(folderID) {
+      collapsedFolderIDs.remove(folderID)
+    } else {
+      collapsedFolderIDs.insert(folderID)
+    }
+    tableView.reloadData()
+  }
+
+  private func disclosureAccessory(
+    for item: FolderSidebarItem,
+    selected: Bool
+  ) -> UIView? {
+    guard
+      item.depth == 0,
+      item.hasChildren,
+      let folderID = item.folderID
+    else {
+      return nil
+    }
+
+    let collapsed = collapsedFolderIDs.contains(folderID)
+    var configuration = UIButton.Configuration.plain()
+    configuration.image = UIImage(
+      systemName: collapsed ? "chevron.right" : "chevron.down"
+    )
+    configuration.baseForegroundColor = .secondaryLabel
+    configuration.contentInsets = .zero
+    let button = UIButton(configuration: configuration)
+    button.accessibilityLabel = L(
+      collapsed ? "sidebar.expand" : "sidebar.collapse"
+    )
+    button.accessibilityValue = item.title
+    button.addAction(
+      UIAction { [weak self] _ in
+        self?.toggleFolder(folderID)
+      },
+      for: .touchUpInside
+    )
+    button.frame = CGRect(
+      x: selected ? 24 : 0,
+      y: 0,
+      width: 32,
+      height: 32
+    )
+
+    let accessory = UIView(
+      frame: CGRect(
+        x: 0,
+        y: 0,
+        width: selected ? 56 : 32,
+        height: 32
+      )
+    )
+    if selected {
+      let checkmark = UIImageView(
+        image: UIImage(systemName: "checkmark")
+      )
+      checkmark.tintColor = .systemBlue
+      checkmark.contentMode = .scaleAspectFit
+      checkmark.frame = CGRect(x: 0, y: 6, width: 20, height: 20)
+      accessory.addSubview(checkmark)
+    }
+    accessory.addSubview(button)
+    return accessory
+  }
+
+  #if DEBUG
+    var visibleItemCountForTesting: Int {
+      visibleItems.count
+    }
+
+    var totalItemCountForTesting: Int {
+      items.count
+    }
+
+    var selectedVisibleItemTitleForTesting: String? {
+      visibleItems.first(where: isSelected)?.title
+    }
+
+    func setFolderCollapsedForTesting(
+      _ collapsed: Bool,
+      folderID: UUID
+    ) {
+      if collapsed {
+        collapsedFolderIDs.insert(folderID)
+      } else {
+        collapsedFolderIDs.remove(folderID)
+      }
+      tableView.reloadData()
+    }
+
+    func isFolderCollapsedForTesting(_ folderID: UUID) -> Bool {
+      collapsedFolderIDs.contains(folderID)
+    }
+  #endif
 }
 
 extension FolderSidebarView: UIGestureRecognizerDelegate {
@@ -221,7 +346,7 @@ extension FolderSidebarView: UITableViewDataSource {
     _ tableView: UITableView,
     numberOfRowsInSection section: Int
   ) -> Int {
-    items.count
+    visibleItems.count
   }
 
   func tableView(
@@ -237,7 +362,7 @@ extension FolderSidebarView: UITableViewDataSource {
         style: .subtitle,
         reuseIdentifier: reuseIdentifier
       )
-    let item = items[indexPath.row]
+    let item = visibleItems[indexPath.row]
     let selected = isSelected(item)
 
     var content = cell.defaultContentConfiguration()
@@ -269,7 +394,12 @@ extension FolderSidebarView: UITableViewDataSource {
       : .secondarySystemGroupedBackground
     background.cornerRadius = 12
     cell.backgroundConfiguration = background
-    cell.accessoryType = selected ? .checkmark : .none
+    cell.accessoryView = disclosureAccessory(
+      for: item,
+      selected: selected
+    )
+    cell.accessoryType =
+      selected && cell.accessoryView == nil ? .checkmark : .none
     cell.tintColor = .systemBlue
     cell.selectionStyle = .none
     cell.isUserInteractionEnabled = item.canSelect || item.canDelete
@@ -285,7 +415,7 @@ extension FolderSidebarView: UITableViewDelegate {
     _ tableView: UITableView,
     didSelectRowAt indexPath: IndexPath
   ) {
-    let item = items[indexPath.row]
+    let item = visibleItems[indexPath.row]
     guard item.canSelect else { return }
     delegate?.folderSidebar(self, didSelect: item)
   }
@@ -294,7 +424,7 @@ extension FolderSidebarView: UITableViewDelegate {
     _ tableView: UITableView,
     trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
   ) -> UISwipeActionsConfiguration? {
-    let item = items[indexPath.row]
+    let item = visibleItems[indexPath.row]
     guard item.canDelete else { return nil }
     let deleteAction = UIContextualAction(
       style: .destructive,

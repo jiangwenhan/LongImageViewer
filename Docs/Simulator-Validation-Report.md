@@ -43,14 +43,14 @@ The script:
 10. Records frame timing, tile counts, page visits, memory, directory order, and all sorting results.
 11. Removes and restores one source image to validate incremental synchronization.
 12. Verifies the two-level sidebar, child-directory navigation, and current-directory highlighting.
-13. Switches added roots and verifies viewer scope and page counts.
-14. Removes the secondary root and confirms that its source files remain.
-15. Displays the sequential root-folder selection progress sheet and verifies the continue/import actions.
-16. Tests password setup, incorrect-password rejection, password changes, old-password invalidation, and password disabling.
-17. Verifies that 179 seconds in the background remains within the grace period and 180 seconds requires authentication.
-18. Installs a test password and verifies that a cold launch displays the lock screen.
-19. Launches in English, Simplified Chinese, and Japanese and validates representative strings.
-20. Switches through all three languages in one process and verifies immediate interface refresh.
+13. Collapses the primary root from 5 visible rows to 2, re-expands it to 5, and confirms that the current page remains unchanged.
+14. Switches added roots and verifies viewer scope and page counts.
+15. Removes the secondary root and confirms that its source files remain.
+16. Displays the sequential root-folder selection progress sheet and verifies the continue/import actions.
+17. Tests password setup, incorrect-password rejection, password changes, old-password invalidation, and password disabling.
+18. Verifies that 179 seconds in the background remains within the grace period and 180 seconds requires authentication.
+19. Installs a test password and verifies that a cold launch displays the lock screen.
+20. Launches in English, Simplified Chinese, and Japanese and verifies in-process language switching.
 
 ## Results
 
@@ -72,6 +72,9 @@ The script:
 - Current-directory highlighting follows navigation and scrolling: passed
 - Tapping a child jumps to page 3 without reducing the six-page sequence: passed
 - The page before the first child image belongs to the root: passed
+- Root disclosure chevron collapses three child rows: passed
+- Re-expanding restores all five sidebar rows: passed
+- Collapsing while viewing a child keeps page 3 and highlights the parent root: passed
 - Primary folder scope: 6 images
 - Secondary folder scope: 2 images
 - Removing the selected secondary folder falls back to the primary folder: passed
@@ -119,15 +122,15 @@ Warm-run result:
 
 This run includes first-time decoding:
 
-- Two-root, two-level metadata scan: 0.15 seconds
+- Two-root, two-level metadata scan: 0.16 seconds
 - Expected tile count: 30
 - Tiles materialized before scrolling: 2
 - Tiles materialized after reaching the end: 30
-- Average frame rate: 59.3 FPS
-- Frames over 22 ms: 2
+- Average frame rate: 59.8 FPS
+- Frames over 22 ms: 5
 - Pages visited: 6/6
-- Peak process memory: approximately 116.8 MiB
-- Final process memory: approximately 90.6 MiB
+- Peak process memory: approximately 113.4 MiB
+- Final process memory: approximately 86.9 MiB
 
 Only 2 of 30 tiles exist after folder opening, confirming that folder selection does not eagerly render every image. The primary sequence is root, `01_Chapter_A`, then `02_Chapter_B`, with two images per directory. `notes.txt`, `metadata.json`, and the image under `DeepIgnored/` are absent from the manifest. Selecting `01_Chapter_A` navigates to page 3 while preserving all six pages.
 
@@ -144,6 +147,7 @@ Physical-device performance should still be confirmed on an iPhone 13 Pro Max wi
 - `Artifacts/Simulator/running-now.png`: current simulator first page
 - `Artifacts/Simulator/folder-sidebar.png`: primary folder selected
 - `Artifacts/Simulator/folder-sidebar-child.png`: direct child selected at page 3
+- `Artifacts/Simulator/folder-sidebar-collapsed.png`: primary root collapsed while page 3 remains active
 - `Artifacts/Simulator/folder-sidebar-secondary.png`: secondary folder selected
 - `Artifacts/Simulator/folder-batch-progress.png`: batch progress after selecting two folders
 - `Artifacts/Simulator/app-lock.png`: app lock screen
@@ -153,6 +157,7 @@ Physical-device performance should still be confirmed on an iPhone 13 Pro Max wi
 - `Artifacts/Simulator/folder-selection-result.json`: folder-switch result
 - `Artifacts/Simulator/folder-management-result.json`: folder-removal result
 - `Artifacts/Simulator/child-directory-result.json`: child navigation and previous-directory result
+- `Artifacts/Simulator/folder-collapse-result.json`: collapse, re-expand, row-count, and page-preservation result
 - `Artifacts/Simulator/app-lock-result.json`: startup lock and grace-period boundary result
 - `Artifacts/Simulator/password-store-result.json`: password setup, verification, change, and disable result
 - `Artifacts/Simulator/localization-en.json`: English string validation

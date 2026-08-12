@@ -136,9 +136,10 @@ The system Files picker and Home Screen display name continue to follow the devi
     - Filename descending
 14. Swipe right in the viewer to open the folder sidebar.
 15. The sidebar lists root folders and indented direct subfolders with image counts.
-16. Tap a subfolder to jump to its first image while preserving the full continuous sequence.
-17. Swipe a root row left to remove its hierarchy and caches without deleting source images.
-18. Swipe left on the sidebar header or empty area, or tap the close button, to dismiss it.
+16. Tap the chevron on a root row to collapse or expand its direct subfolders; tapping the root name still navigates to root-level images.
+17. Tap a subfolder to jump to its first image while preserving the full continuous sequence.
+18. Swipe a root row left to remove its hierarchy and caches without deleting source images.
+19. Swipe left on the sidebar header or empty area, or tap the close button, to dismiss it.
 
 Folder mode stores only screen-width tile caches inside the app. It does not copy or modify source images. Sync again after source files or direct subfolders are added, changed, or removed.
 
@@ -195,8 +196,9 @@ Connect the same iPhone and press `Command + R` again. Xcode installs the new bu
 8. Sources can add folders, import individual files, and trigger synchronization.
 9. Adding a root includes its direct subfolders but excludes non-image and third-level files.
 10. Root images scroll directly into the first child folder, then into later siblings.
-11. Password & Lock can enable protection.
-12. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
+11. Root chevrons collapse and re-expand direct subfolders without changing the current page.
+12. Password & Lock can enable protection.
+13. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
 
 ## 13. Verified Project Configuration
 

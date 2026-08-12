@@ -59,6 +59,8 @@
 "sidebar.close" = "关闭文件夹侧边栏";
 "sidebar.image_count_format" = "%d 张图片";
 "sidebar.current" = "当前文件夹";
+"sidebar.expand" = "展开二级目录";
+"sidebar.collapse" = "折叠二级目录";
 
 "clear.title" = "清空全部图片？";
 "clear.message" = "图片缓存和文件夹关联将从 App 中删除，此操作不会影响原文件。";

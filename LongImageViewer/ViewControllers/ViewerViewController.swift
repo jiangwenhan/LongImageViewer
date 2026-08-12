@@ -847,6 +847,9 @@ final class ViewerViewController: UIViewController {
             title: summary.displayName,
             imageCount: summary.imageCount,
             depth: summary.relativePath == nil ? 0 : 1,
+            hasChildren:
+              summary.relativePath == nil
+                && summaries.count > 1,
             canSelect:
               summary.relativePath == nil
                 || summary.imageCount > 0,
@@ -863,6 +866,7 @@ final class ViewerViewController: UIViewController {
           title: L("folder.manual_import"),
           imageCount: library.imageCount(in: nil),
           depth: 0,
+          hasChildren: false,
           canSelect: true,
           canDelete: true
         )
@@ -1523,7 +1527,8 @@ final class ViewerViewController: UIViewController {
         }
       } else if
         arguments.contains("--show-folder-sidebar"),
-        !arguments.contains("--select-first-child-directory")
+        !arguments.contains("--select-first-child-directory"),
+        !arguments.contains("--collapse-primary-folder")
       {
         DispatchQueue.main.asyncAfter(
           deadline: .now() + 2
@@ -1559,6 +1564,99 @@ final class ViewerViewController: UIViewController {
           )
         }
       }
+
+      if arguments.contains("--collapse-primary-folder") {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 2
+        ) { [weak self] in
+          self?.collapsePrimaryFolderForTesting(
+            showsSidebar: arguments.contains(
+              "--show-folder-sidebar"
+            )
+          )
+        }
+      }
+    }
+
+    private func collapsePrimaryFolderForTesting(
+      showsSidebar: Bool
+    ) {
+      guard
+        let folderID = selectedFolderID,
+        let childItem = sidebarItems.first(
+          where: {
+            $0.folderID == folderID
+              && $0.directoryRelativePath != nil
+              && $0.imageCount > 0
+          }
+        )
+      else {
+        writeFolderCollapseResult([
+          "status": "collapsible-folder-not-found"
+        ])
+        return
+      }
+
+      selectCollection(childItem)
+      updateFolderSidebar()
+      let expandedItemCount =
+        folderSidebarView.visibleItemCountForTesting
+      folderSidebarView.setFolderCollapsedForTesting(
+        true,
+        folderID: folderID
+      )
+      let collapsedItemCount =
+        folderSidebarView.visibleItemCountForTesting
+      let collapsedParentTitle =
+        folderSidebarView.selectedVisibleItemTitleForTesting ?? ""
+      let pageAfterCollapse = currentPageIndex
+      folderSidebarView.setFolderCollapsedForTesting(
+        false,
+        folderID: folderID
+      )
+      let reexpandedItemCount =
+        folderSidebarView.visibleItemCountForTesting
+      folderSidebarView.setFolderCollapsedForTesting(
+        true,
+        folderID: folderID
+      )
+
+      writeFolderCollapseResult([
+        "status": "passed",
+        "folderCollapsed":
+          folderSidebarView.isFolderCollapsedForTesting(folderID),
+        "totalItemCount":
+          folderSidebarView.totalItemCountForTesting,
+        "expandedItemCount": expandedItemCount,
+        "collapsedItemCount": collapsedItemCount,
+        "reexpandedItemCount": reexpandedItemCount,
+        "selectedVisibleTitle": collapsedParentTitle,
+        "pageAfterCollapse": pageAfterCollapse,
+      ])
+      if showsSidebar {
+        showFolderSidebar()
+      }
+    }
+
+    private func writeFolderCollapseResult(
+      _ result: [String: Any]
+    ) {
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "folder-collapse-result.json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
     }
 
     private func selectFirstChildDirectoryForTesting(

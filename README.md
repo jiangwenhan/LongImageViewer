@@ -98,3 +98,9 @@ See the [Simulator Validation Report](Docs/Simulator-Validation-Report.md) for t
 ## Basic Usage
 
 On first launch, tap Browse Image Folder. On iPhone, authorize one root folder in each system-picker pass, tap Continue Selecting to add another root, and finally tap Import N Folders. Every selected root automatically includes its direct subfolders.
+
+## License
+
+LongImageViewer is released under the [MIT License](LICENSE).
+
+You may use, modify, and redistribute the source, including in commercial products, provided that the copyright and license notice are retained. The software is provided without warranty.

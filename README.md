@@ -13,7 +13,10 @@ A native iOS app for viewing long images, optimized for iPhone 13 Pro Max and re
 - Imports multiple PNG, JPEG, HEIC, and other system-supported image files
 - Adds multiple folders from On My iPhone, iCloud Drive, or local macOS storage
 - Persists folder access and incrementally syncs added, changed, and removed images
-- Keeps browsing and page counts scoped to the selected folder
+- Includes each added root folder and its direct subfolders as a two-level hierarchy
+- Ignores non-image files and directories deeper than the supported second level
+- Browses root-folder images first, then each direct subfolder in name order
+- Scrolls continuously across directory boundaries without resetting the viewer
 - Opens the folder sidebar with a right swipe and closes it with a left swipe
 - Removes app metadata and caches with a row swipe without deleting source files
 - Optionally protects the app with a password and a three-minute relock grace period
@@ -31,9 +34,11 @@ Tap `来源` (Sources) in the lower-right corner:
 - `密码与锁定` (Password & Lock): set, change, or disable the app password.
 - `语言` / `Language` / `言語`: switch the app interface language.
 
-Opening a folder reads only filenames, dimensions, timestamps, and other metadata. It does not render every image up front. Tiles are generated for the current viewport and at most two tiles ahead, then evicted when they leave the cache window.
+Opening a folder automatically adds images in that root and in each direct subfolder. Files below that second level are outside the browsing scope. Non-image files are ignored. The app reads only filenames, dimensions, timestamps, and other metadata up front; tiles are generated for the current viewport and at most two tiles ahead.
 
-The sidebar has one folder-level hierarchy and does not list individual images. The main viewer and page counter include only the selected folder. Swipe right to open the sidebar, tap a folder to switch, swipe a row left to remove it, and swipe left on the header or empty area to close the sidebar.
+Within an added root, the viewer orders root-level images first, followed by direct subfolders in filename order. Each directory applies the selected image sort independently. The last image of one directory and the first image of the next share the same continuous scroll.
+
+The sidebar displays added roots and indented direct subfolders, but never individual images. Tapping a subfolder jumps to its first image without narrowing or replacing the continuous browsing sequence. Swipe a root row left to remove the root, its descendants, and app caches without deleting source files.
 
 The same project supports iPhone and Mac Catalyst. On macOS, use the system picker to access local folders or iCloud Drive. A local Catalyst release build is produced at:
 
@@ -92,4 +97,4 @@ See the [Simulator Validation Report](Docs/Simulator-Validation-Report.md) for t
 
 ## Basic Usage
 
-On first launch, tap Browse Image Folder. On iPhone, authorize one folder in each system-picker pass, tap Continue Selecting to add another, and finally tap Import N Folders. Use the lower-left control to change sorting or clear app-managed caches and folder associations.
+On first launch, tap Browse Image Folder. On iPhone, authorize one root folder in each system-picker pass, tap Continue Selecting to add another root, and finally tap Import N Folders. Every selected root automatically includes its direct subfolders.

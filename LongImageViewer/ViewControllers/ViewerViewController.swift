@@ -836,21 +836,35 @@ final class ViewerViewController: UIViewController {
   }
 
   private var sidebarItems: [FolderSidebarItem] {
-    var items = library.folders.map { folder in
-      FolderSidebarItem(
-        folderID: folder.id,
-        title: folder.displayName,
-        imageCount: library.imageCount(in: folder.id),
-        isAvailable: true
-      )
+    var items: [FolderSidebarItem] = []
+    for folder in library.folders {
+      let summaries = library.directorySummaries(in: folder)
+      for summary in summaries {
+        items.append(
+          FolderSidebarItem(
+            folderID: folder.id,
+            directoryRelativePath: summary.relativePath,
+            title: summary.displayName,
+            imageCount: summary.imageCount,
+            depth: summary.relativePath == nil ? 0 : 1,
+            canSelect:
+              summary.relativePath == nil
+                || summary.imageCount > 0,
+            canDelete: summary.relativePath == nil
+          )
+        )
+      }
     }
     if library.hasStandaloneDocuments {
       items.append(
         FolderSidebarItem(
           folderID: nil,
+          directoryRelativePath: nil,
           title: L("folder.manual_import"),
           imageCount: library.imageCount(in: nil),
-          isAvailable: true
+          depth: 0,
+          canSelect: true,
+          canDelete: true
         )
       )
     }
@@ -926,8 +940,20 @@ final class ViewerViewController: UIViewController {
     folderSidebarView.update(
       items: sidebarItems,
       selectedFolderID: selectedFolderID,
+      selectedDirectoryRelativePath:
+        currentDirectoryRelativePath,
       selectsStandaloneFolder: selectsStandaloneFolder
     )
+  }
+
+  private var currentDirectoryRelativePath: String? {
+    guard
+      !selectsStandaloneFolder,
+      documents.indices.contains(currentPageIndex)
+    else {
+      return nil
+    }
+    return documents[currentPageIndex].directoryRelativePath
   }
 
   private var selectedCollectionTitle: String {
@@ -989,13 +1015,28 @@ final class ViewerViewController: UIViewController {
   }
 
   private func selectCollection(_ item: FolderSidebarItem) {
+    let switchesRoot =
+      item.folderID != selectedFolderID
+        || (item.folderID == nil && !selectsStandaloneFolder)
     selectedFolderID = item.folderID
     selectsStandaloneFolder = item.folderID == nil
     currentPageIndex = 0
     persistFolderSelection()
-    ImagePipeline.shared.clearCache()
-    reloadLibrary(preservingPage: false)
-    collectionView.setContentOffset(.zero, animated: false)
+    if switchesRoot {
+      ImagePipeline.shared.clearCache()
+      reloadLibrary(preservingPage: false)
+    }
+
+    let targetPage: Int
+    if let directoryRelativePath = item.directoryRelativePath {
+      targetPage =
+        documents.firstIndex {
+          $0.directoryRelativePath == directoryRelativePath
+        } ?? 0
+    } else {
+      targetPage = 0
+    }
+    scrollToPage(at: targetPage, animated: false)
     hideFolderSidebar()
   }
 
@@ -1257,6 +1298,9 @@ final class ViewerViewController: UIViewController {
     guard pageIndex != currentPageIndex else { return }
     currentPageIndex = pageIndex
     updateOverlay()
+    if isSidebarVisible {
+      updateFolderSidebar()
+    }
   }
 
   private func updateOverlay() {
@@ -1477,7 +1521,10 @@ final class ViewerViewController: UIViewController {
             )
           )
         }
-      } else if arguments.contains("--show-folder-sidebar") {
+      } else if
+        arguments.contains("--show-folder-sidebar"),
+        !arguments.contains("--select-first-child-directory")
+      {
         DispatchQueue.main.asyncAfter(
           deadline: .now() + 2
         ) { [weak self] in
@@ -1500,6 +1547,78 @@ final class ViewerViewController: UIViewController {
           self?.showFolderBatchProgressForTesting()
         }
       }
+
+      if arguments.contains("--select-first-child-directory") {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 2
+        ) { [weak self] in
+          self?.selectFirstChildDirectoryForTesting(
+            showsSidebar: arguments.contains(
+              "--show-folder-sidebar"
+            )
+          )
+        }
+      }
+    }
+
+    private func selectFirstChildDirectoryForTesting(
+      showsSidebar: Bool
+    ) {
+      guard
+        let item = sidebarItems.first(
+          where: {
+            $0.folderID == selectedFolderID
+              && $0.directoryRelativePath != nil
+              && $0.imageCount > 0
+          }
+        )
+      else {
+        writeChildDirectoryResult([
+          "status": "child-directory-not-found"
+        ])
+        return
+      }
+
+      selectCollection(item)
+      writeChildDirectoryResult([
+        "status": "passed",
+        "selectedDirectory": currentDirectoryRelativePath ?? "",
+        "currentPageIndex": currentPageIndex,
+        "documentCount": documents.count,
+        "previousDirectory":
+          currentPageIndex > 0
+          ? documents[currentPageIndex - 1].directoryRelativePath
+            ?? "__root__"
+          : "",
+      ])
+      if showsSidebar {
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 0.3
+        ) { [weak self] in
+          self?.showFolderSidebar()
+        }
+      }
+    }
+
+    private func writeChildDirectoryResult(
+      _ result: [String: Any]
+    ) {
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "child-directory-result.json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
     }
 
     private func showFolderBatchProgressForTesting() {
@@ -1713,10 +1832,37 @@ final class ViewerViewController: UIViewController {
         uniqueKeysWithValues: ImageSortOption.allCases.map { option in
           (
             option.rawValue,
-            option.sort(documents).map(\.filename)
+            selectsStandaloneFolder
+              ? option.sort(documents).map(\.filename)
+              : library.documents(
+                in: selectedFolderID,
+                sortedBy: option
+              ).map(\.filename)
           )
         }
       )
+      let directoryOrder = documents.map {
+        $0.directoryRelativePath ?? "__root__"
+      }
+      let directorySummaries: [[String: Any]]
+      if
+        let selectedFolderID,
+        let selectedFolder = library.folders.first(
+          where: { $0.id == selectedFolderID }
+        )
+      {
+        directorySummaries = library.directorySummaries(
+          in: selectedFolder
+        ).map { summary in
+          [
+            "relativePath": summary.relativePath ?? "__root__",
+            "displayName": summary.displayName,
+            "imageCount": summary.imageCount,
+          ]
+        }
+      } else {
+        directorySummaries = []
+      }
       writeSmokeTestResult([
         "status": "passed",
         "documentCount": documents.count,
@@ -1727,6 +1873,9 @@ final class ViewerViewController: UIViewController {
         "averageFPS": round(averageFPS * 10) / 10,
         "contentHeight": round(collectionView.contentSize.height),
         "sortOrders": sortOrders,
+        "directoryOrder": directoryOrder,
+        "directoryCount": Set(directoryOrder).count,
+        "directorySummaries": directorySummaries,
         "folderCount": library.folders.count,
         "sidebarItemCount": sidebarItems.count,
         "selectedFolderTitle": selectedCollectionTitle,

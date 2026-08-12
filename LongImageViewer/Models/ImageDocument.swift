@@ -16,6 +16,7 @@ struct ImageDocument: Codable, Hashable {
   let tiles: [ImageTile]
   let sourceFolderID: UUID?
   let sourceRelativePath: String?
+  let sourceDirectoryRelativePath: String?
   let sourceModificationDate: Date?
   let sourceFileSize: Int64?
 
@@ -29,6 +30,7 @@ struct ImageDocument: Codable, Hashable {
     tiles: [ImageTile],
     sourceFolderID: UUID? = nil,
     sourceRelativePath: String? = nil,
+    sourceDirectoryRelativePath: String? = nil,
     sourceModificationDate: Date? = nil,
     sourceFileSize: Int64? = nil
   ) {
@@ -41,8 +43,24 @@ struct ImageDocument: Codable, Hashable {
     self.tiles = tiles
     self.sourceFolderID = sourceFolderID
     self.sourceRelativePath = sourceRelativePath
+    self.sourceDirectoryRelativePath = sourceDirectoryRelativePath
     self.sourceModificationDate = sourceModificationDate
     self.sourceFileSize = sourceFileSize
+  }
+
+  var directoryRelativePath: String? {
+    if let sourceDirectoryRelativePath {
+      return sourceDirectoryRelativePath
+    }
+    guard
+      sourceFolderID != nil,
+      let sourceRelativePath
+    else {
+      return nil
+    }
+    let components = sourceRelativePath.split(separator: "/")
+    guard components.count > 1 else { return nil }
+    return components.dropLast().joined(separator: "/")
   }
 }
 
@@ -52,6 +70,34 @@ struct ImageFolder: Codable, Hashable {
   let bookmarkData: Data
   let addedAt: Date
   let pathHint: String?
+  let childDirectoryNames: [String]?
+
+  init(
+    id: UUID,
+    displayName: String,
+    bookmarkData: Data,
+    addedAt: Date,
+    pathHint: String?,
+    childDirectoryNames: [String]? = nil
+  ) {
+    self.id = id
+    self.displayName = displayName
+    self.bookmarkData = bookmarkData
+    self.addedAt = addedAt
+    self.pathHint = pathHint
+    self.childDirectoryNames = childDirectoryNames
+  }
+
+  var directChildDirectoryNames: [String] {
+    childDirectoryNames ?? []
+  }
+}
+
+struct ImageDirectorySummary: Hashable {
+  let folderID: UUID
+  let relativePath: String?
+  let displayName: String
+  let imageCount: Int
 }
 
 enum ImageSortOption: String, CaseIterable {

@@ -84,13 +84,72 @@ final class ImageLibrary {
   }
 
   func documents(in folderID: UUID?) -> [ImageDocument] {
-    sortOption.sort(
-      documents.filter { $0.sourceFolderID == folderID }
+    documents(in: folderID, sortedBy: sortOption)
+  }
+
+  func documents(
+    in folderID: UUID?,
+    sortedBy option: ImageSortOption
+  ) -> [ImageDocument] {
+    let matchingDocuments = documents.filter {
+      $0.sourceFolderID == folderID
+    }
+    guard folderID != nil else {
+      return option.sort(matchingDocuments)
+    }
+
+    let grouped = Dictionary(
+      grouping: matchingDocuments,
+      by: \.directoryRelativePath
     )
+    var ordered = option.sort(grouped[nil] ?? [])
+    let childPaths = grouped.keys.compactMap { $0 }.sorted {
+      $0.localizedStandardCompare($1) == .orderedAscending
+    }
+    for childPath in childPaths {
+      ordered.append(
+        contentsOf: option.sort(grouped[childPath] ?? [])
+      )
+    }
+    return ordered
   }
 
   func imageCount(in folderID: UUID?) -> Int {
     documents.lazy.filter { $0.sourceFolderID == folderID }.count
+  }
+
+  func directorySummaries(
+    in folder: ImageFolder
+  ) -> [ImageDirectorySummary] {
+    let folderDocuments = documents.filter {
+      $0.sourceFolderID == folder.id
+    }
+    let rootCount = folderDocuments.lazy.filter {
+      $0.directoryRelativePath == nil
+    }.count
+    var summaries = [
+      ImageDirectorySummary(
+        folderID: folder.id,
+        relativePath: nil,
+        displayName: folder.displayName,
+        imageCount: rootCount
+      )
+    ]
+    for childName in folder.directChildDirectoryNames.sorted(by: {
+      $0.localizedStandardCompare($1) == .orderedAscending
+    }) {
+      summaries.append(
+        ImageDirectorySummary(
+          folderID: folder.id,
+          relativePath: childName,
+          displayName: childName,
+          imageCount: folderDocuments.lazy.filter {
+            $0.directoryRelativePath == childName
+          }.count
+        )
+      )
+    }
+    return summaries
   }
 
   func folderID(for url: URL) -> UUID? {
@@ -342,7 +401,9 @@ final class ImageLibrary {
               displayName: url.lastPathComponent,
               bookmarkData: bookmarkData,
               addedAt: existing.addedAt,
-              pathHint: pathHint
+              pathHint: pathHint,
+              childDirectoryNames:
+                existing.directChildDirectoryNames
             )
           } else {
             nextFolders.append(
@@ -351,7 +412,8 @@ final class ImageLibrary {
                 displayName: url.lastPathComponent,
                 bookmarkData: bookmarkData,
                 addedAt: Date(),
-                pathHint: pathHint
+                pathHint: pathHint,
+                childDirectoryNames: []
               )
             )
           }
@@ -385,6 +447,7 @@ final class ImageLibrary {
       guard let self else { return }
 
       var nextDocuments = currentDocuments
+      var nextFolders = currentFolders
       var generatedDocuments: [ImageDocument] = []
       var obsoleteDocuments: [ImageDocument] = []
       var failedFilenames: [String] = []
@@ -407,12 +470,25 @@ final class ImageLibrary {
             }
           }
 
-          let scannedFiles: [FolderFile]
+          let scan: FolderScan
           do {
-            scannedFiles = try self.imageFiles(in: folderURL)
+            scan = try self.scanFolder(at: folderURL)
           } catch {
             unavailableFolders.append(folder.displayName)
             return
+          }
+          let scannedFiles = scan.files
+          if let folderIndex = nextFolders.firstIndex(
+            where: { $0.id == folder.id }
+          ) {
+            nextFolders[folderIndex] = ImageFolder(
+              id: folder.id,
+              displayName: folder.displayName,
+              bookmarkData: folder.bookmarkData,
+              addedAt: folder.addedAt,
+              pathHint: folder.pathHint,
+              childDirectoryNames: scan.childDirectoryNames
+            )
           }
 
           let existingDocuments = currentDocuments.filter {
@@ -429,7 +505,9 @@ final class ImageLibrary {
             let existing = existingByPath[file.relativePath]
             if let existing,
               existing.sourceModificationDate == file.modificationDate,
-              existing.sourceFileSize == file.fileSize
+              existing.sourceFileSize == file.fileSize,
+              existing.directoryRelativePath
+                == file.directoryRelativePath
             {
               continue
             }
@@ -439,6 +517,8 @@ final class ImageLibrary {
                 from: file.url,
                 sourceFolderID: folder.id,
                 sourceRelativePath: file.relativePath,
+                sourceDirectoryRelativePath:
+                  file.directoryRelativePath,
                 sourceModificationDate: file.modificationDate,
                 sourceFileSize: file.fileSize
               )
@@ -477,9 +557,11 @@ final class ImageLibrary {
 
       do {
         try self.saveManifest(nextDocuments)
+        try self.saveFolders(nextFolders)
         self.removeDirectories(for: obsoleteDocuments)
         DispatchQueue.main.async {
           self.documents = nextDocuments
+          self.folders = nextFolders
           completion(
             .success(
               FolderSyncSummary(
@@ -493,6 +575,8 @@ final class ImageLibrary {
           )
         }
       } catch {
+        try? self.saveManifest(currentDocuments)
+        try? self.saveFolders(currentFolders)
         self.removeDirectories(for: generatedDocuments)
         DispatchQueue.main.async {
           completion(.failure(error))
@@ -617,6 +701,7 @@ final class ImageLibrary {
         from: copiedURL,
         sourceFolderID: nil,
         sourceRelativePath: relativePath,
+        sourceDirectoryRelativePath: nil,
         sourceModificationDate: modificationDate,
         sourceFileSize: Int64(values.fileSize ?? 0)
       )
@@ -630,6 +715,7 @@ final class ImageLibrary {
     from url: URL,
     sourceFolderID: UUID,
     sourceRelativePath: String,
+    sourceDirectoryRelativePath: String?,
     sourceModificationDate: Date,
     sourceFileSize: Int64
   ) throws -> ImageDocument {
@@ -658,6 +744,8 @@ final class ImageLibrary {
           from: coordinatedURL,
           sourceFolderID: sourceFolderID,
           sourceRelativePath: sourceRelativePath,
+          sourceDirectoryRelativePath:
+            sourceDirectoryRelativePath,
           sourceModificationDate: sourceModificationDate,
           sourceFileSize: sourceFileSize
         )
@@ -677,6 +765,7 @@ final class ImageLibrary {
     from url: URL,
     sourceFolderID: UUID?,
     sourceRelativePath: String,
+    sourceDirectoryRelativePath: String?,
     sourceModificationDate: Date,
     sourceFileSize: Int64
   ) throws -> ImageDocument {
@@ -751,6 +840,7 @@ final class ImageLibrary {
       tiles: tiles,
       sourceFolderID: sourceFolderID,
       sourceRelativePath: sourceRelativePath,
+      sourceDirectoryRelativePath: sourceDirectoryRelativePath,
       sourceModificationDate: sourceModificationDate,
       sourceFileSize: sourceFileSize
     )
@@ -841,9 +931,12 @@ final class ImageLibrary {
     try fileManager.moveItem(at: temporaryURL, to: outputURL)
   }
 
-  private func imageFiles(in folderURL: URL) throws -> [FolderFile] {
+  private func scanFolder(at folderURL: URL) throws -> FolderScan {
     let resourceKeys: Set<URLResourceKey> = [
+      .isDirectoryKey,
+      .isPackageKey,
       .isRegularFileKey,
+      .isSymbolicLinkKey,
       .contentTypeKey,
       .creationDateKey,
       .contentModificationDateKey,
@@ -851,48 +944,102 @@ final class ImageLibrary {
       .isUbiquitousItemKey,
       .ubiquitousItemDownloadingStatusKey,
     ]
-    guard
-      let enumerator = fileManager.enumerator(
-        at: folderURL,
-        includingPropertiesForKeys: Array(resourceKeys),
-        options: [.skipsHiddenFiles, .skipsPackageDescendants]
-      )
-    else {
-      throw ImageLibraryError.folderAccessFailed(
-        folderURL.lastPathComponent
-      )
-    }
-
+    let rootItems = try fileManager.contentsOfDirectory(
+      at: folderURL,
+      includingPropertiesForKeys: Array(resourceKeys),
+      options: [.skipsHiddenFiles]
+    )
     var files: [FolderFile] = []
-    for case let fileURL as URL in enumerator {
-      let values = try fileURL.resourceValues(forKeys: resourceKeys)
-      guard values.isRegularFile == true else { continue }
+    var childDirectoryNames: [String] = []
 
-      let isImage =
-        values.contentType?.conforms(to: .image) == true
-        || UTType(filenameExtension: fileURL.pathExtension)?
-          .conforms(to: .image) == true
-      guard isImage else { continue }
-
-      let modificationDate =
-        values.contentModificationDate
-        ?? values.creationDate
-        ?? .distantPast
-      let fileSize = Int64(values.fileSize ?? 0)
-      let relativePath = relativePath(
-        for: fileURL,
-        inside: folderURL
-      )
-      files.append(
-        FolderFile(
-          url: fileURL,
-          relativePath: relativePath,
-          modificationDate: modificationDate,
-          fileSize: fileSize
+    for itemURL in rootItems {
+      guard
+        let values = try? itemURL.resourceValues(
+          forKeys: resourceKeys
         )
-      )
+      else {
+        continue
+      }
+      if values.isRegularFile == true {
+        if let file = folderFile(
+          at: itemURL,
+          values: values,
+          rootURL: folderURL,
+          directoryRelativePath: nil
+        ) {
+          files.append(file)
+        }
+        continue
+      }
+      guard
+        values.isDirectory == true,
+        values.isPackage != true,
+        values.isSymbolicLink != true
+      else {
+        continue
+      }
+
+      let childName = itemURL.lastPathComponent
+      childDirectoryNames.append(childName)
+      guard
+        let childItems = try? fileManager.contentsOfDirectory(
+          at: itemURL,
+          includingPropertiesForKeys: Array(resourceKeys),
+          options: [.skipsHiddenFiles]
+        )
+      else {
+        continue
+      }
+      for childItemURL in childItems {
+        guard
+          let childValues = try? childItemURL.resourceValues(
+            forKeys: resourceKeys
+          ),
+          childValues.isRegularFile == true,
+          let file = folderFile(
+            at: childItemURL,
+            values: childValues,
+            rootURL: folderURL,
+            directoryRelativePath: childName
+          )
+        else {
+          continue
+        }
+        files.append(file)
+      }
     }
-    return files
+    childDirectoryNames.sort {
+      $0.localizedStandardCompare($1) == .orderedAscending
+    }
+    return FolderScan(
+      files: files,
+      childDirectoryNames: childDirectoryNames
+    )
+  }
+
+  private func folderFile(
+    at fileURL: URL,
+    values: URLResourceValues,
+    rootURL: URL,
+    directoryRelativePath: String?
+  ) -> FolderFile? {
+    let isImage =
+      values.contentType?.conforms(to: .image) == true
+      || UTType(filenameExtension: fileURL.pathExtension)?
+        .conforms(to: .image) == true
+    guard isImage else { return nil }
+
+    let modificationDate =
+      values.contentModificationDate
+      ?? values.creationDate
+      ?? .distantPast
+    return FolderFile(
+      url: fileURL,
+      relativePath: relativePath(for: fileURL, inside: rootURL),
+      directoryRelativePath: directoryRelativePath,
+      modificationDate: modificationDate,
+      fileSize: Int64(values.fileSize ?? 0)
+    )
   }
 
   private func relativePath(
@@ -943,8 +1090,14 @@ final class ImageLibrary {
   private struct FolderFile {
     let url: URL
     let relativePath: String
+    let directoryRelativePath: String?
     let modificationDate: Date
     let fileSize: Int64
+  }
+
+  private struct FolderScan {
+    let files: [FolderFile]
+    let childDirectoryNames: [String]
   }
 
   private func saveManifest() throws {

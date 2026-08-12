@@ -2,9 +2,12 @@ import UIKit
 
 struct FolderSidebarItem: Equatable {
   let folderID: UUID?
+  let directoryRelativePath: String?
   let title: String
   let imageCount: Int
-  let isAvailable: Bool
+  let depth: Int
+  let canSelect: Bool
+  let canDelete: Bool
 }
 
 protocol FolderSidebarViewDelegate: AnyObject {
@@ -24,6 +27,7 @@ final class FolderSidebarView: UIView {
 
   private var items: [FolderSidebarItem] = []
   private var selectedFolderID: UUID?
+  private var selectedDirectoryRelativePath: String?
   private var selectsStandaloneFolder = false
 
   private let titleLabel: UILabel = {
@@ -159,10 +163,13 @@ final class FolderSidebarView: UIView {
   func update(
     items: [FolderSidebarItem],
     selectedFolderID: UUID?,
+    selectedDirectoryRelativePath: String?,
     selectsStandaloneFolder: Bool
   ) {
     self.items = items
     self.selectedFolderID = selectedFolderID
+    self.selectedDirectoryRelativePath =
+      selectedDirectoryRelativePath
     self.selectsStandaloneFolder = selectsStandaloneFolder
     tableView.reloadData()
   }
@@ -188,6 +195,8 @@ final class FolderSidebarView: UIView {
     }
     return !selectsStandaloneFolder
       && item.folderID == selectedFolderID
+      && item.directoryRelativePath
+        == selectedDirectoryRelativePath
   }
 }
 
@@ -240,6 +249,8 @@ extension FolderSidebarView: UITableViewDataSource {
       ? .systemBlue
       : .secondaryLabel
     content.text = item.title
+    content.directionalLayoutMargins.leading =
+      item.depth == 0 ? 12 : 36
     content.textProperties.font = .systemFont(
       ofSize: 16,
       weight: selected ? .semibold : .regular
@@ -261,6 +272,8 @@ extension FolderSidebarView: UITableViewDataSource {
     cell.accessoryType = selected ? .checkmark : .none
     cell.tintColor = .systemBlue
     cell.selectionStyle = .none
+    cell.isUserInteractionEnabled = item.canSelect || item.canDelete
+    cell.contentView.alpha = item.canSelect ? 1 : 0.52
     cell.accessibilityValue =
       selected ? L("sidebar.current") : nil
     return cell
@@ -272,10 +285,9 @@ extension FolderSidebarView: UITableViewDelegate {
     _ tableView: UITableView,
     didSelectRowAt indexPath: IndexPath
   ) {
-    delegate?.folderSidebar(
-      self,
-      didSelect: items[indexPath.row]
-    )
+    let item = items[indexPath.row]
+    guard item.canSelect else { return }
+    delegate?.folderSidebar(self, didSelect: item)
   }
 
   func tableView(
@@ -283,6 +295,7 @@ extension FolderSidebarView: UITableViewDelegate {
     trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
   ) -> UISwipeActionsConfiguration? {
     let item = items[indexPath.row]
+    guard item.canDelete else { return nil }
     let deleteAction = UIContextualAction(
       style: .destructive,
       title: L("common.delete")

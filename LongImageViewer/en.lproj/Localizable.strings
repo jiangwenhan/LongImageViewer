@@ -55,7 +55,7 @@
 "folder.sync_unavailable_format" = "Unavailable: %@";
 
 "sidebar.title" = "Image Folders";
-"sidebar.subtitle" = "Only images in the selected folder are shown";
+"sidebar.subtitle" = "Browse each root folder and its direct subfolders continuously";
 "sidebar.close" = "Close Folder Sidebar";
 "sidebar.image_count_format" = "%d images";
 "sidebar.current" = "Current Folder";

@@ -95,11 +95,33 @@ DATA_CONTAINER="$(
 )"
 FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorFixtures"
 SECONDARY_FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorFixturesSecondary"
-mkdir -p "$FIXTURE_DIR"
+CHILD_A_DIR="$FIXTURE_DIR/01_Chapter_A"
+CHILD_B_DIR="$FIXTURE_DIR/02_Chapter_B"
+EMPTY_CHILD_DIR="$FIXTURE_DIR/03_Empty_Chapter"
+DEEP_DIR="$CHILD_A_DIR/DeepIgnored"
+mkdir -p "$CHILD_A_DIR"
+mkdir -p "$CHILD_B_DIR"
+mkdir -p "$EMPTY_CHILD_DIR"
+mkdir -p "$DEEP_DIR"
 mkdir -p "$SECONDARY_FIXTURE_DIR"
-find "$ROOT_DIR/TestImages" -maxdepth 1 -type f \
-  \( -name '*.jpg' -o -name '*.jpeg' -o -name '*.png' -o -name '*.heic' \) \
-  -exec cp -p {} "$FIXTURE_DIR/" \;
+cp -p \
+  "$ROOT_DIR/TestImages/01_narrow_short_640x1800.jpg" \
+  "$ROOT_DIR/TestImages/02_phone_medium_1284x5000.jpg" \
+  "$FIXTURE_DIR/"
+cp -p \
+  "$ROOT_DIR/TestImages/03_wide_medium_2400x6000.jpg" \
+  "$ROOT_DIR/TestImages/10_ultra_long_1284x18000.jpg" \
+  "$CHILD_A_DIR/"
+cp -p \
+  "$ROOT_DIR/TestImages/20_wide_short_1800x1500.jpg" \
+  "$ROOT_DIR/TestImages/Z_tall_narrow_900x12000.jpg" \
+  "$CHILD_B_DIR/"
+cp -p \
+  "$ROOT_DIR/TestImages/01_narrow_short_640x1800.jpg" \
+  "$DEEP_DIR/deep_ignored.jpg"
+printf 'not an image\n' >"$FIXTURE_DIR/notes.txt"
+printf '{"ignored": true}\n' >"$CHILD_A_DIR/metadata.json"
+printf 'empty child marker\n' >"$EMPTY_CHILD_DIR/README.txt"
 cp -p \
   "$ROOT_DIR/TestImages/01_narrow_short_640x1800.jpg" \
   "$ROOT_DIR/TestImages/02_phone_medium_1284x5000.jpg" \
@@ -143,7 +165,38 @@ jq -e '
   and .documentCount == 6
   and .visitedPageCount == 6
   and .folderCount == 2
-  and .sidebarItemCount == 2
+  and .sidebarItemCount == 5
+  and .directoryCount == 3
+  and .directoryOrder == [
+    "__root__",
+    "__root__",
+    "01_Chapter_A",
+    "01_Chapter_A",
+    "02_Chapter_B",
+    "02_Chapter_B"
+  ]
+  and .directorySummaries == [
+    {
+      "displayName": "SimulatorFixtures",
+      "imageCount": 2,
+      "relativePath": "__root__"
+    },
+    {
+      "displayName": "01_Chapter_A",
+      "imageCount": 2,
+      "relativePath": "01_Chapter_A"
+    },
+    {
+      "displayName": "02_Chapter_B",
+      "imageCount": 2,
+      "relativePath": "02_Chapter_B"
+    },
+    {
+      "displayName": "03_Empty_Chapter",
+      "imageCount": 0,
+      "relativePath": "03_Empty_Chapter"
+    }
+  ]
   and .selectedFolderTitle == "SimulatorFixtures"
   and .usedMemoryBytes > 0
   and .peakMemoryBytes < 268435456
@@ -159,14 +212,23 @@ jq -e '
     "Z_tall_narrow_900x12000.jpg"
   ]
   and .sortOrders.creationAscending == [
-    "20_wide_short_1800x1500.jpg",
     "02_phone_medium_1284x5000.jpg",
     "01_narrow_short_640x1800.jpg",
     "10_ultra_long_1284x18000.jpg",
     "03_wide_medium_2400x6000.jpg",
+    "20_wide_short_1800x1500.jpg",
     "Z_tall_narrow_900x12000.jpg"
   ]
 ' "$ARTIFACTS_DIR/smoke-test-result.json" >/dev/null
+
+MANIFEST_PATH="$DATA_CONTAINER/Library/Application Support/LongImageViewer/manifest.json"
+jq -e '
+  map(select(.sourceFolderID != null)) as $folderDocuments
+  | ($folderDocuments | length) == 8
+  and ($folderDocuments | map(.filename) | index("notes.txt")) == null
+  and ($folderDocuments | map(.filename) | index("metadata.json")) == null
+  and ($folderDocuments | map(.filename) | index("deep_ignored.jpg")) == null
+' "$MANIFEST_PATH" >/dev/null
 
 xcrun simctl launch \
   --terminate-running-process \
@@ -179,6 +241,38 @@ xcrun simctl launch \
 sleep 3
 xcrun simctl io "$DEVICE_UDID" screenshot \
   "$ARTIFACTS_DIR/folder-sidebar.png"
+
+CHILD_DIRECTORY_RESULT="$DATA_CONTAINER/Documents/child-directory-result.json"
+rm -f "$CHILD_DIRECTORY_RESULT"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --import-simulator-fixtures \
+  --import-secondary-simulator-fixture \
+  --select-first-child-directory \
+  --show-folder-sidebar
+
+for _ in {1..30}; do
+  if [[ -f "$CHILD_DIRECTORY_RESULT" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .selectedDirectory == "01_Chapter_A"
+  and .currentPageIndex == 2
+  and .documentCount == 6
+  and .previousDirectory == "__root__"
+' "$CHILD_DIRECTORY_RESULT" >/dev/null
+cp "$CHILD_DIRECTORY_RESULT" \
+  "$ARTIFACTS_DIR/child-directory-result.json"
+sleep 1
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/folder-sidebar-child.png"
 
 FOLDER_SELECTION_RESULT="$DATA_CONTAINER/Documents/folder-selection-result.json"
 rm -f "$FOLDER_SELECTION_RESULT"
@@ -204,7 +298,7 @@ jq -e '
   and .selectedFolderTitle == "SimulatorFixturesSecondary"
   and .selectedDocumentCount == 2
   and .pageCount == 2
-  and .sidebarItemCount == 2
+  and .sidebarItemCount == 5
 ' "$FOLDER_SELECTION_RESULT" >/dev/null
 cp "$FOLDER_SELECTION_RESULT" \
   "$ARTIFACTS_DIR/folder-selection-result.json"
@@ -233,7 +327,7 @@ done
 jq -e '
   .status == "passed"
   and .folderCount == 1
-  and .sidebarItemCount == 1
+  and .sidebarItemCount == 4
   and .selectedDocumentCount == 6
   and .sourceFolderStillExists == true
 ' "$FOLDER_MANAGEMENT_RESULT" >/dev/null
@@ -241,7 +335,7 @@ cp "$FOLDER_MANAGEMENT_RESULT" \
   "$ARTIFACTS_DIR/folder-management-result.json"
 test -f "$SECONDARY_FIXTURE_DIR/01_narrow_short_640x1800.jpg"
 
-REMOVED_FIXTURE="$FIXTURE_DIR/20_wide_short_1800x1500.jpg"
+REMOVED_FIXTURE="$CHILD_B_DIR/20_wide_short_1800x1500.jpg"
 rm "$REMOVED_FIXTURE"
 rm "$RESULT_PATH"
 xcrun simctl launch \
@@ -267,7 +361,7 @@ jq -e '
   and .documentCount == 5
   and .visitedPageCount == 5
   and .folderCount == 2
-  and .sidebarItemCount == 2
+  and .sidebarItemCount == 5
 ' "$RESULT_PATH" >/dev/null
 cp "$RESULT_PATH" "$ARTIFACTS_DIR/folder-removal-result.json"
 cp -p "$ROOT_DIR/TestImages/20_wide_short_1800x1500.jpg" "$REMOVED_FIXTURE"

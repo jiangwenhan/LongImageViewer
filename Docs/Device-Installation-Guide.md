@@ -122,22 +122,25 @@ The system Files picker and Home Screen display name continue to follow the devi
 3. Select the first folder containing images.
 4. Back in the app, tap `继续选择` (Continue Selecting) to authorize another folder.
 5. When finished, tap `导入 N 个文件夹` (Import N Folders).
-6. Selecting an existing folder again refreshes its permission without creating a duplicate.
-7. Use `来源` (Sources) → `选择图片文件` (Select Image Files) to import individual files.
-8. Scroll vertically to browse.
-9. The top overlay shows page count, filename, and process memory.
-10. The lower-left sorting control supports:
+6. Each selected root automatically includes images in the root and its direct subfolders. Deeper folders are not scanned.
+7. Non-image files are ignored.
+8. Selecting an existing root again refreshes its permission without creating a duplicate.
+9. Use `来源` (Sources) → `选择图片文件` (Select Image Files) to import individual files.
+10. Scroll vertically to browse. Root-level images appear first, followed by each direct subfolder in name order.
+11. Scrolling continues directly across directory boundaries.
+12. The top overlay shows page count, filename, and process memory.
+13. The lower-left sorting control supports:
     - Creation date ascending
     - Creation date descending
     - Filename ascending
     - Filename descending
-11. Swipe right in the viewer to open the folder sidebar.
-12. The sidebar lists folders and image counts; the active folder is highlighted.
-13. Tap a folder to make it the only folder shown in the viewer.
-14. Swipe a folder row left to remove its app metadata and cache without deleting source images.
-15. Swipe left on the sidebar header or empty area, or tap the close button, to dismiss it.
+14. Swipe right in the viewer to open the folder sidebar.
+15. The sidebar lists root folders and indented direct subfolders with image counts.
+16. Tap a subfolder to jump to its first image while preserving the full continuous sequence.
+17. Swipe a root row left to remove its hierarchy and caches without deleting source images.
+18. Swipe left on the sidebar header or empty area, or tap the close button, to dismiss it.
 
-Folder mode stores only screen-width tile caches inside the app. It does not copy or modify source images. Sync again after source files are added, changed, or removed.
+Folder mode stores only screen-width tile caches inside the app. It does not copy or modify source images. Sync again after source files or direct subfolders are added, changed, or removed.
 
 ### App Password
 
@@ -190,8 +193,10 @@ Connect the same iPhone and press `Command + R` again. Xcode installs the new bu
 6. The overlay shows page count, filename, and live memory.
 7. All four sorting modes work.
 8. Sources can add folders, import individual files, and trigger synchronization.
-9. Password & Lock can enable protection.
-10. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
+9. Adding a root includes its direct subfolders but excludes non-image and third-level files.
+10. Root images scroll directly into the first child folder, then into later siblings.
+11. Password & Lock can enable protection.
+12. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
 
 ## 13. Verified Project Configuration
 

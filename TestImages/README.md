@@ -32,3 +32,22 @@ Each fixture contains its filename, original pixel dimensions, sequential sectio
 2. Internal tiles of the same image join without visible seams.
 3. A thin divider appears only between different files.
 4. The page indicator and filename update at page boundaries.
+
+## Simulator Hierarchy Layout
+
+The smoke-test script arranges the six fixtures as:
+
+```text
+SimulatorFixtures/
+├── 2 root images
+├── 01_Chapter_A/
+│   ├── 2 images
+│   ├── metadata.json
+│   └── DeepIgnored/deep_ignored.jpg
+├── 02_Chapter_B/
+│   └── 2 images
+├── 03_Empty_Chapter/
+└── notes.txt
+```
+
+The expected browsing sequence is the two root images, the two images in `01_Chapter_A`, then the two images in `02_Chapter_B`. Text/JSON files and `DeepIgnored/deep_ignored.jpg` must not enter the browsing scope.

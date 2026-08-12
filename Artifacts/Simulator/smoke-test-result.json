@@ -1,33 +1,64 @@
 {
-  "averageFPS" : 60,
+  "averageFPS" : 59.299999999999997,
   "contentHeight" : 15994,
-  "directorySyncDurationSeconds" : 0.13,
+  "directoryCount" : 3,
+  "directoryOrder" : [
+    "__root__",
+    "__root__",
+    "01_Chapter_A",
+    "01_Chapter_A",
+    "02_Chapter_B",
+    "02_Chapter_B"
+  ],
+  "directorySummaries" : [
+    {
+      "displayName" : "SimulatorFixtures",
+      "imageCount" : 2,
+      "relativePath" : "__root__"
+    },
+    {
+      "displayName" : "01_Chapter_A",
+      "imageCount" : 2,
+      "relativePath" : "01_Chapter_A"
+    },
+    {
+      "displayName" : "02_Chapter_B",
+      "imageCount" : 2,
+      "relativePath" : "02_Chapter_B"
+    },
+    {
+      "displayName" : "03_Empty_Chapter",
+      "imageCount" : 0,
+      "relativePath" : "03_Empty_Chapter"
+    }
+  ],
+  "directorySyncDurationSeconds" : 0.14999999999999999,
   "documentCount" : 6,
   "durationSeconds" : 18.010000000000002,
   "expectedTileCount" : 30,
   "finalMaterializedTileCount" : 30,
   "folderCount" : 2,
-  "frameCount" : 1081,
-  "initialMaterializedTileCount" : 3,
-  "peakMemoryBytes" : 113528072,
+  "frameCount" : 1068,
+  "initialMaterializedTileCount" : 2,
+  "peakMemoryBytes" : 122440992,
   "selectedFolderTitle" : "SimulatorFixtures",
-  "sidebarItemCount" : 2,
-  "slowFrameCount" : 0,
+  "sidebarItemCount" : 5,
+  "slowFrameCount" : 2,
   "sortOrders" : {
     "creationAscending" : [
-      "20_wide_short_1800x1500.jpg",
       "02_phone_medium_1284x5000.jpg",
       "01_narrow_short_640x1800.jpg",
       "10_ultra_long_1284x18000.jpg",
       "03_wide_medium_2400x6000.jpg",
+      "20_wide_short_1800x1500.jpg",
       "Z_tall_narrow_900x12000.jpg"
     ],
     "creationDescending" : [
-      "Z_tall_narrow_900x12000.jpg",
-      "03_wide_medium_2400x6000.jpg",
-      "10_ultra_long_1284x18000.jpg",
       "01_narrow_short_640x1800.jpg",
       "02_phone_medium_1284x5000.jpg",
+      "03_wide_medium_2400x6000.jpg",
+      "10_ultra_long_1284x18000.jpg",
+      "Z_tall_narrow_900x12000.jpg",
       "20_wide_short_1800x1500.jpg"
     ],
     "filenameAscending" : [
@@ -39,15 +70,15 @@
       "Z_tall_narrow_900x12000.jpg"
     ],
     "filenameDescending" : [
-      "Z_tall_narrow_900x12000.jpg",
-      "20_wide_short_1800x1500.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "01_narrow_short_640x1800.jpg",
       "10_ultra_long_1284x18000.jpg",
       "03_wide_medium_2400x6000.jpg",
-      "02_phone_medium_1284x5000.jpg",
-      "01_narrow_short_640x1800.jpg"
+      "Z_tall_narrow_900x12000.jpg",
+      "20_wide_short_1800x1500.jpg"
     ]
   },
   "status" : "passed",
-  "usedMemoryBytes" : 93818192,
+  "usedMemoryBytes" : 94948736,
   "visitedPageCount" : 6
 }

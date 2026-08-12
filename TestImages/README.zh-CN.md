@@ -32,3 +32,22 @@ swift Tools/GenerateTestImages.swift
 2. 同一图片的内部切片是否无缝衔接。
 3. 只有不同文件之间出现一条细分割线。
 4. 顶部页码和文件名是否在跨页时同步更新。
+
+## 模拟器目录结构
+
+冒烟测试脚本将 6 张图片组织为：
+
+```text
+SimulatorFixtures/
+├── 根目录图片 2 张
+├── 01_Chapter_A/
+│   ├── 图片 2 张
+│   ├── metadata.json
+│   └── DeepIgnored/deep_ignored.jpg
+├── 02_Chapter_B/
+│   └── 图片 2 张
+├── 03_Empty_Chapter/
+└── notes.txt
+```
+
+预期浏览顺序是根目录 2 张、`01_Chapter_A` 2 张、`02_Chapter_B` 2 张。文本/JSON 文件和三级目录中的 `DeepIgnored/deep_ignored.jpg` 不应进入浏览范围。

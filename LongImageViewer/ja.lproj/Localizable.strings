@@ -55,7 +55,7 @@
 "folder.sync_unavailable_format" = "アクセス不可：%@";
 
 "sidebar.title" = "画像フォルダ";
-"sidebar.subtitle" = "選択したフォルダ内の画像のみ表示します";
+"sidebar.subtitle" = "ルートフォルダと直下のサブフォルダを連続表示します";
 "sidebar.close" = "フォルダサイドバーを閉じる";
 "sidebar.image_count_format" = "%d枚の画像";
 "sidebar.current" = "現在のフォルダ";

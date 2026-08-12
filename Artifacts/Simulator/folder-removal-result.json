@@ -1,17 +1,47 @@
 {
-  "averageFPS" : 60.100000000000001,
+  "averageFPS" : 60,
   "contentHeight" : 15638,
-  "directorySyncDurationSeconds" : 0.059999999999999998,
+  "directoryCount" : 3,
+  "directoryOrder" : [
+    "__root__",
+    "__root__",
+    "01_Chapter_A",
+    "01_Chapter_A",
+    "02_Chapter_B"
+  ],
+  "directorySummaries" : [
+    {
+      "displayName" : "SimulatorFixtures",
+      "imageCount" : 2,
+      "relativePath" : "__root__"
+    },
+    {
+      "displayName" : "01_Chapter_A",
+      "imageCount" : 2,
+      "relativePath" : "01_Chapter_A"
+    },
+    {
+      "displayName" : "02_Chapter_B",
+      "imageCount" : 1,
+      "relativePath" : "02_Chapter_B"
+    },
+    {
+      "displayName" : "03_Empty_Chapter",
+      "imageCount" : 0,
+      "relativePath" : "03_Empty_Chapter"
+    }
+  ],
+  "directorySyncDurationSeconds" : 0.16,
   "documentCount" : 5,
-  "durationSeconds" : 18,
+  "durationSeconds" : 18.02,
   "expectedTileCount" : 29,
   "finalMaterializedTileCount" : 29,
   "folderCount" : 2,
   "frameCount" : 1081,
   "initialMaterializedTileCount" : 29,
-  "peakMemoryBytes" : 107383808,
+  "peakMemoryBytes" : 106007648,
   "selectedFolderTitle" : "SimulatorFixtures",
-  "sidebarItemCount" : 2,
+  "sidebarItemCount" : 5,
   "slowFrameCount" : 0,
   "sortOrders" : {
     "creationAscending" : [
@@ -22,11 +52,11 @@
       "Z_tall_narrow_900x12000.jpg"
     ],
     "creationDescending" : [
-      "Z_tall_narrow_900x12000.jpg",
+      "01_narrow_short_640x1800.jpg",
+      "02_phone_medium_1284x5000.jpg",
       "03_wide_medium_2400x6000.jpg",
       "10_ultra_long_1284x18000.jpg",
-      "01_narrow_short_640x1800.jpg",
-      "02_phone_medium_1284x5000.jpg"
+      "Z_tall_narrow_900x12000.jpg"
     ],
     "filenameAscending" : [
       "01_narrow_short_640x1800.jpg",
@@ -36,14 +66,14 @@
       "Z_tall_narrow_900x12000.jpg"
     ],
     "filenameDescending" : [
-      "Z_tall_narrow_900x12000.jpg",
+      "02_phone_medium_1284x5000.jpg",
+      "01_narrow_short_640x1800.jpg",
       "10_ultra_long_1284x18000.jpg",
       "03_wide_medium_2400x6000.jpg",
-      "02_phone_medium_1284x5000.jpg",
-      "01_narrow_short_640x1800.jpg"
+      "Z_tall_narrow_900x12000.jpg"
     ]
   },
   "status" : "passed",
-  "usedMemoryBytes" : 85675008,
+  "usedMemoryBytes" : 86199368,
   "visitedPageCount" : 5
 }

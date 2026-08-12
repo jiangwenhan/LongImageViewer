@@ -55,7 +55,7 @@
 "folder.sync_unavailable_format" = "无法访问：%@";
 
 "sidebar.title" = "图片文件夹";
-"sidebar.subtitle" = "选择文件夹后，仅浏览其中的图片";
+"sidebar.subtitle" = "连续浏览根目录及其直属子目录中的图片";
 "sidebar.close" = "关闭文件夹侧边栏";
 "sidebar.image_count_format" = "%d 张图片";
 "sidebar.current" = "当前文件夹";

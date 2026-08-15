@@ -108,6 +108,11 @@ The script creates an iPhone 13 Pro Max simulator, builds and installs the app, 
 
 See the [Simulator Validation Report](Docs/Simulator-Validation-Report.md) for the latest recorded results.
 
+## Release Notes
+
+See the [Changelog](CHANGELOG.md) for the video playback update and other
+notable changes.
+
 ## Basic Usage
 
 On first launch, tap Browse Image Folder. On iPhone, authorize one root folder in each system-picker pass, tap Continue Selecting to add another root, and finally tap Import N Folders. Every selected image root automatically includes its direct subfolders.

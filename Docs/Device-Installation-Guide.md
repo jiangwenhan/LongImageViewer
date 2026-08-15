@@ -155,7 +155,23 @@ Folder mode stores only screen-width tile caches inside the app. It does not cop
 
 With no password configured, the app opens directly. Password recovery and reset are intentionally unsupported. Removing and reinstalling the app does not guarantee removal of the Keychain credential, so retain the password securely.
 
-## 10. Common Signing Problems
+## 10. Link and Play Videos
+
+1. Open `Sources` → `Add Video Folder`.
+2. In the system Files picker, choose a folder from On My iPhone or iCloud Drive.
+3. The app saves access permission and indexes videos in the selected root and nested directories. It does not import, copy, or transcode the files.
+4. Swipe right to open the sidebar and select the `Videos` tab.
+5. Tap a directory to expand or collapse it. A directory never starts playback.
+6. Tap a video file to open the system player.
+7. Returning to the Home Screen or switching to another app pauses playback automatically.
+8. Swipe a video file or nested directory left to hide it from the app without deleting the source item.
+9. Swipe a linked root left to remove the complete app association. The Files folder remains unchanged.
+10. Use `Sources` → `Restore Hidden Video Items`, or link the root again, to restore hidden entries.
+11. Use `Sources` → `Sync Video Folders` after changing the source directory outside the app.
+
+The index recognizes MP4, MOV, M4V, 3GP, MPEG, MPG, TS, MTS, M2TS, M3U8, and other system movie types. Playback also requires the device's AVPlayer to support the media codecs inside the container. An iCloud item may need to download before playback begins.
+
+## 11. Common Signing Problems
 
 ### `Signing for "LongImageViewer" requires a development team`
 
@@ -180,11 +196,11 @@ Enable Developer Mode using section 4, then restart the iPhone.
 
 Free Apple ID development signatures normally expire after seven days. Reconnect the iPhone and press `Command + R` in Xcode to reinstall.
 
-## 11. Install an Updated Build
+## 12. Install an Updated Build
 
-Connect the same iPhone and press `Command + R` again. Xcode installs the new build over the old one, and app-managed image data normally remains. Deleting the app removes its image copies, but the Keychain password may remain.
+Connect the same iPhone and press `Command + R` again. Xcode installs the new build over the old one, and app-managed image data, folder bookmarks, and video associations normally remain. Deleting the app removes its managed image copies and associations, but never removes source videos from Files. The Keychain password may remain.
 
-## 12. Acceptance Checklist
+## 13. Acceptance Checklist
 
 1. The localized app icon name appears and the app launches.
 2. English, Simplified Chinese, and Japanese can be selected from Sources → Language.
@@ -197,10 +213,16 @@ Connect the same iPhone and press `Command + R` again. Xcode installs the new bu
 9. Adding a root includes its direct subfolders but excludes non-image and third-level files.
 10. Root images scroll directly into the first child folder, then into later siblings.
 11. Root chevrons collapse and re-expand direct subfolders without changing the current page.
-12. Password & Lock can enable protection.
-13. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
+12. The sidebar switches between Images and Videos.
+13. Adding a video folder reads source files directly and creates no video copy in app storage.
+14. Video directories expand or collapse, while only a video-file tap starts playback.
+15. MP4, MOV, M4V, and TS samples appear and play when their codecs are supported.
+16. Hiding or unlinking a video entry leaves the source file or directory intact.
+17. Switching to the Home Screen or another app pauses active video playback.
+18. Password & Lock can enable protection.
+19. Returning within three minutes bypasses reauthentication; returning after three minutes shows the lock screen.
 
-## 13. Verified Project Configuration
+## 14. Verified Project Configuration
 
 - Device target: iPhone 13 Pro Max
 - Minimum OS: iOS 16.0
@@ -209,3 +231,4 @@ Connect the same iPhone and press `Command + R` again. Xcode installs the new bu
 - Signing: Automatic
 - Device architecture: arm64
 - Release device build: verified
+- Mac Catalyst arm64 release build: verified

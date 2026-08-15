@@ -9,5 +9,10 @@
     "ja" : "ソース",
     "zh-Hans" : "来源"
   },
-  "status" : "passed"
+  "status" : "passed",
+  "videoTabTitles" : {
+    "en" : "Videos",
+    "ja" : "動画",
+    "zh-Hans" : "视频播放"
+  }
 }

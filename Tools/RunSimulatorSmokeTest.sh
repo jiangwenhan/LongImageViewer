@@ -95,6 +95,7 @@ DATA_CONTAINER="$(
 )"
 FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorFixtures"
 SECONDARY_FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorFixturesSecondary"
+VIDEO_FIXTURE_DIR="$DATA_CONTAINER/Documents/SimulatorVideoFixtures"
 CHILD_A_DIR="$FIXTURE_DIR/01_Chapter_A"
 CHILD_B_DIR="$FIXTURE_DIR/02_Chapter_B"
 EMPTY_CHILD_DIR="$FIXTURE_DIR/03_Empty_Chapter"
@@ -104,6 +105,8 @@ mkdir -p "$CHILD_B_DIR"
 mkdir -p "$EMPTY_CHILD_DIR"
 mkdir -p "$DEEP_DIR"
 mkdir -p "$SECONDARY_FIXTURE_DIR"
+mkdir -p "$VIDEO_FIXTURE_DIR/Level_1/Level_2"
+mkdir -p "$VIDEO_FIXTURE_DIR/Sibling"
 cp -p \
   "$ROOT_DIR/TestImages/01_narrow_short_640x1800.jpg" \
   "$ROOT_DIR/TestImages/02_phone_medium_1284x5000.jpg" \
@@ -126,6 +129,91 @@ cp -p \
   "$ROOT_DIR/TestImages/01_narrow_short_640x1800.jpg" \
   "$ROOT_DIR/TestImages/02_phone_medium_1284x5000.jpg" \
   "$SECONDARY_FIXTURE_DIR/"
+
+FFMPEG_BIN="$(command -v ffmpeg || true)"
+if [[ -z "$FFMPEG_BIN" ]]; then
+  echo "ffmpeg is required for the video playback smoke test." >&2
+  exit 1
+fi
+"$FFMPEG_BIN" -y -loglevel error \
+  -f lavfi -i "testsrc=size=640x360:rate=30" \
+  -t 8 -an -c:v libx264 -preset ultrafast -pix_fmt yuv420p \
+  -movflags +faststart \
+  "$VIDEO_FIXTURE_DIR/root_clip.mp4"
+"$FFMPEG_BIN" -y -loglevel error \
+  -i "$VIDEO_FIXTURE_DIR/root_clip.mp4" -an -c:v copy \
+  "$VIDEO_FIXTURE_DIR/Level_1/child_clip.mov"
+"$FFMPEG_BIN" -y -loglevel error \
+  -i "$VIDEO_FIXTURE_DIR/root_clip.mp4" -an -c:v copy \
+  "$VIDEO_FIXTURE_DIR/Level_1/Level_2/deep_clip.m4v"
+"$FFMPEG_BIN" -y -loglevel error \
+  -i "$VIDEO_FIXTURE_DIR/root_clip.mp4" -an -c:v copy \
+  -bsf:v h264_mp4toannexb -f mpegts \
+  "$VIDEO_FIXTURE_DIR/Sibling/sibling_clip.ts"
+printf 'not a video\n' >"$VIDEO_FIXTURE_DIR/notes.txt"
+
+VIDEO_RESULT_PATH="$DATA_CONTAINER/Documents/video-library-result.json"
+rm -f "$VIDEO_RESULT_PATH"
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --import-simulator-video-fixtures \
+  --video-library-smoke-test
+
+for _ in {1..60}; do
+  if [[ -f "$VIDEO_RESULT_PATH" ]]; then
+    break
+  fi
+  sleep 1
+done
+
+jq -e '
+  .status == "passed"
+  and .videoCount == 4
+  and .sidebarItemCount == 8
+  and .videoRowCount == 4
+  and .folderRowCount == 4
+  and .maximumDepth == 3
+  and .formats == ["m4v", "mov", "mp4", "ts"]
+  and .directoryPaths == [
+    "Level_1",
+    "Level_1/Level_2",
+    "Sibling"
+  ]
+  and .fileHiddenWithoutDeletion == true
+  and .directoryHiddenWithoutDeletion == true
+  and .associationRemovedWithoutDeletion == true
+  and .sourceFilesStillExist == true
+  and .rateBeforeBackgroundPause > 0
+  and .rateAfterBackgroundPause == 0
+' "$VIDEO_RESULT_PATH" >/dev/null
+if find \
+  "$DATA_CONTAINER/Library/Application Support/LongImageViewer" \
+  -type f \
+  \( -iname '*.mp4' -o -iname '*.mov' -o -iname '*.m4v' \
+    -o -iname '*.ts' \) \
+  -print -quit | grep -q .
+then
+  echo "Video source data was copied into App Support." >&2
+  exit 1
+fi
+cp "$VIDEO_RESULT_PATH" \
+  "$ARTIFACTS_DIR/video-library-result.json"
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/video-player-paused.png"
+
+xcrun simctl launch \
+  --terminate-running-process \
+  "$DEVICE_UDID" \
+  "$BUNDLE_ID" \
+  --reset-app-password \
+  --import-simulator-video-fixtures \
+  --show-video-sidebar
+sleep 3
+xcrun simctl io "$DEVICE_UDID" screenshot \
+  "$ARTIFACTS_DIR/video-sidebar.png"
 
 xcrun simctl launch \
   --terminate-running-process \
@@ -449,16 +537,19 @@ for APP_LANGUAGE in en zh-Hans ja; do
       EXPECTED_SOURCE="Sources"
       EXPECTED_EMPTY="No Image Folders Yet"
       EXPECTED_SORT="Image Sorting"
+      EXPECTED_VIDEO_TAB="Videos"
       ;;
     zh-Hans)
       EXPECTED_SOURCE="来源"
       EXPECTED_EMPTY="还没有图片文件夹"
       EXPECTED_SORT="图片排序"
+      EXPECTED_VIDEO_TAB="视频播放"
       ;;
     ja)
       EXPECTED_SOURCE="ソース"
       EXPECTED_EMPTY="画像フォルダがありません"
       EXPECTED_SORT="画像の並べ替え"
+      EXPECTED_VIDEO_TAB="動画"
       ;;
   esac
 
@@ -466,12 +557,14 @@ for APP_LANGUAGE in en zh-Hans ja; do
     --arg language "$APP_LANGUAGE" \
     --arg source "$EXPECTED_SOURCE" \
     --arg empty "$EXPECTED_EMPTY" \
-    --arg sort "$EXPECTED_SORT" '
+    --arg sort "$EXPECTED_SORT" \
+    --arg videoTab "$EXPECTED_VIDEO_TAB" '
       .status == "passed"
       and .language == $language
       and .sourceButton == $source
       and .emptyTitle == $empty
       and .sortTitle == $sort
+      and .videosTab == $videoTab
     ' "$LOCALIZATION_RESULT" >/dev/null
   cp "$LOCALIZATION_RESULT" \
     "$ARTIFACTS_DIR/localization-$APP_LANGUAGE.json"
@@ -529,6 +622,9 @@ jq -e '
   and .sortMenuTitles.en == "Image Sorting"
   and .sortMenuTitles["zh-Hans"] == "图片排序"
   and .sortMenuTitles.ja == "画像の並べ替え"
+  and .videoTabTitles.en == "Videos"
+  and .videoTabTitles["zh-Hans"] == "视频播放"
+  and .videoTabTitles.ja == "動画"
 ' "$LANGUAGE_SWITCH_RESULT" >/dev/null
 cp "$LANGUAGE_SWITCH_RESULT" \
   "$ARTIFACTS_DIR/language-switch-result.json"

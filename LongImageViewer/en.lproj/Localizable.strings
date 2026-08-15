@@ -18,11 +18,15 @@
 "sort.clear_all" = "Clear All Images";
 
 "source.button" = "Sources";
-"source.title" = "Image Sources";
+"source.title" = "Sources";
+"source.manage_library" = "Open Media Library";
 "source.manage_folders" = "Manage Loaded Folders";
 "source.batch_add_folders" = "Batch Add Image Folders";
 "source.select_files" = "Select Image Files";
 "source.sync_folders" = "Sync Added Folders";
+"source.add_video_folder" = "Add Video Folder";
+"source.sync_video_folders" = "Sync Video Folders";
+"source.restore_hidden_videos" = "Restore Hidden Video Items";
 "source.password_lock" = "Password & Lock";
 
 "empty.initial_title" = "No Long Images Yet";
@@ -45,6 +49,8 @@
 
 "folder.status_available" = "Browse On My iPhone, iCloud Drive, or a local Mac folder";
 "folder.status_added_format" = "Added: %@";
+"folder.status_images_format" = "Images: %@";
+"folder.status_videos_format" = "Videos: %@";
 "folder.manual_import" = "Manual Import";
 "folder.generic" = "Image Folders";
 "folder.sync_complete" = "Folder Sync Complete";
@@ -56,9 +62,17 @@
 
 "sidebar.title" = "Image Folders";
 "sidebar.subtitle" = "Browse each root folder and its direct subfolders continuously";
+"sidebar.library_title" = "Media Library";
+"sidebar.images_tab" = "Images";
+"sidebar.videos_tab" = "Videos";
+"sidebar.images_subtitle" = "Browse each image root and its direct subfolders continuously";
+"sidebar.videos_subtitle" = "Tap a video file to play; tap a folder to expand or collapse";
 "sidebar.close" = "Close Folder Sidebar";
 "sidebar.image_count_format" = "%d images";
+"sidebar.video_count_format" = "%d videos";
+"sidebar.video_file" = "Video file";
 "sidebar.current" = "Current Folder";
+"sidebar.current_video" = "Current Video";
 "sidebar.expand" = "Expand Subfolders";
 "sidebar.collapse" = "Collapse Subfolders";
 
@@ -76,6 +90,21 @@
 "collection.remove_folder_message" = "The folder and its caches will be removed. Source images will not be deleted.";
 "collection.remove_title_format" = "Remove “%@”?";
 "import.partial_failed" = "Some Images Were Not Imported";
+
+"video.error.no_folders" = "No video folders have been added";
+"video.error.folder_access_format" = "Unable to access video folder: %@";
+"video.error.unavailable_format" = "Video is no longer available: %@";
+"video.folder_added" = "Video Folder Added";
+"video.sync_complete" = "Video Folder Sync Complete";
+"video.restore_complete" = "Hidden Video Items Restored";
+"video.sync_added_format" = "Added %d videos";
+"video.sync_updated_format" = "Updated %d videos";
+"video.sync_removed_format" = "Removed %d videos";
+"video.remove_root_message" = "The folder association and its video index will be removed from the app. Source files will not be deleted.";
+"video.hide_folder_message" = "This folder and its videos will be hidden from the app. Source files will not be deleted. Use Restore Hidden Video Items to link them again.";
+"video.hide_file_message" = "This video will be hidden from the app. The source file will not be deleted. Use Restore Hidden Video Items to link it again.";
+"video.playback_failed" = "Unable to Play Video";
+"video.playback_unsupported" = "The video container or codec is not supported by this device.";
 
 "memory.unavailable" = "Memory --";
 "memory.format" = "Memory %.0f MB";

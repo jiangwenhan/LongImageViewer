@@ -1,9 +1,11 @@
 {
   "emptyTitle" : "画像フォルダがありません",
+  "imagesTab" : "画像",
   "language" : "ja",
   "languageTitle" : "言語",
   "lockTitle" : "ロング画像ビューアはロックされています",
   "sortTitle" : "画像の並べ替え",
   "sourceButton" : "ソース",
-  "status" : "passed"
+  "status" : "passed",
+  "videosTab" : "動画"
 }

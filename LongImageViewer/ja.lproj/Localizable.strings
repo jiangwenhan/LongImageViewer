@@ -18,11 +18,15 @@
 "sort.clear_all" = "すべての画像を消去";
 
 "source.button" = "ソース";
-"source.title" = "画像ソース";
+"source.title" = "ソース";
+"source.manage_library" = "メディアライブラリを開く";
 "source.manage_folders" = "追加済みフォルダを管理";
 "source.batch_add_folders" = "画像フォルダを一括追加";
 "source.select_files" = "画像ファイルを選択";
 "source.sync_folders" = "追加済みフォルダを同期";
+"source.add_video_folder" = "動画フォルダを追加";
+"source.sync_video_folders" = "動画フォルダを同期";
+"source.restore_hidden_videos" = "非表示の動画項目を復元";
 "source.password_lock" = "パスワードとロック";
 
 "empty.initial_title" = "ロング画像がありません";
@@ -45,6 +49,8 @@
 
 "folder.status_available" = "このiPhone内、iCloud Drive、またはMacのローカルフォルダを参照できます";
 "folder.status_added_format" = "追加済み：%@";
+"folder.status_images_format" = "画像：%@";
+"folder.status_videos_format" = "動画：%@";
 "folder.manual_import" = "手動読み込み";
 "folder.generic" = "画像フォルダ";
 "folder.sync_complete" = "フォルダの同期が完了しました";
@@ -56,9 +62,17 @@
 
 "sidebar.title" = "画像フォルダ";
 "sidebar.subtitle" = "ルートフォルダと直下のサブフォルダを連続表示します";
+"sidebar.library_title" = "メディアライブラリ";
+"sidebar.images_tab" = "画像";
+"sidebar.videos_tab" = "動画";
+"sidebar.images_subtitle" = "画像ルートと直下のサブフォルダを連続表示します";
+"sidebar.videos_subtitle" = "動画ファイルをタップして再生し、フォルダをタップして展開または折りたたみます";
 "sidebar.close" = "フォルダサイドバーを閉じる";
 "sidebar.image_count_format" = "%d枚の画像";
+"sidebar.video_count_format" = "%d本の動画";
+"sidebar.video_file" = "動画ファイル";
 "sidebar.current" = "現在のフォルダ";
+"sidebar.current_video" = "現在の動画";
 "sidebar.expand" = "サブフォルダを展開";
 "sidebar.collapse" = "サブフォルダを折りたたむ";
 
@@ -76,6 +90,21 @@
 "collection.remove_folder_message" = "フォルダとキャッシュをアプリから削除します。元の画像は削除されません。";
 "collection.remove_title_format" = "「%@」を削除しますか？";
 "import.partial_failed" = "一部の画像を読み込めませんでした";
+
+"video.error.no_folders" = "動画フォルダが追加されていません";
+"video.error.folder_access_format" = "動画フォルダにアクセスできません：%@";
+"video.error.unavailable_format" = "動画を利用できません：%@";
+"video.folder_added" = "動画フォルダを追加しました";
+"video.sync_complete" = "動画フォルダの同期が完了しました";
+"video.restore_complete" = "非表示の動画項目を復元しました";
+"video.sync_added_format" = "%d本の動画を追加";
+"video.sync_updated_format" = "%d本の動画を更新";
+"video.sync_removed_format" = "%d本の動画を削除";
+"video.remove_root_message" = "フォルダの関連付けと動画インデックスをアプリから削除します。元のファイルは削除されません。";
+"video.hide_folder_message" = "このフォルダと動画をアプリで非表示にします。元のファイルは削除されません。「非表示の動画項目を復元」で再関連付けできます。";
+"video.hide_file_message" = "この動画をアプリで非表示にします。元のファイルは削除されません。「非表示の動画項目を復元」で再関連付けできます。";
+"video.playback_failed" = "動画を再生できません";
+"video.playback_unsupported" = "この端末では動画のコンテナまたはコーデックがサポートされていません。";
 
 "memory.unavailable" = "メモリ --";
 "memory.format" = "メモリ %.0f MB";

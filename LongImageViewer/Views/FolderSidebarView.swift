@@ -1,5 +1,10 @@
 import UIKit
 
+enum SidebarMediaMode: Int {
+  case images
+  case videos
+}
+
 struct FolderSidebarItem: Equatable {
   let folderID: UUID?
   let directoryRelativePath: String?
@@ -8,6 +13,22 @@ struct FolderSidebarItem: Equatable {
   let depth: Int
   let hasChildren: Bool
   let canSelect: Bool
+  let canDelete: Bool
+}
+
+enum VideoSidebarItemKind: Equatable {
+  case folder
+  case video
+}
+
+struct VideoSidebarItem: Equatable {
+  let folderID: UUID
+  let relativePath: String?
+  let title: String
+  let videoCount: Int
+  let depth: Int
+  let kind: VideoSidebarItemKind
+  let hasChildren: Bool
   let canDelete: Bool
 }
 
@@ -20,6 +41,18 @@ protocol FolderSidebarViewDelegate: AnyObject {
     _ sidebar: FolderSidebarView,
     didRequestDelete item: FolderSidebarItem
   )
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didChangeMode mode: SidebarMediaMode
+  )
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didSelectVideo item: VideoSidebarItem
+  )
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didRequestDeleteVideo item: VideoSidebarItem
+  )
   func folderSidebarDidRequestClose(_ sidebar: FolderSidebarView)
 }
 
@@ -27,14 +60,19 @@ final class FolderSidebarView: UIView {
   weak var delegate: FolderSidebarViewDelegate?
 
   private var items: [FolderSidebarItem] = []
+  private var videoItems: [VideoSidebarItem] = []
   private var collapsedFolderIDs: Set<UUID> = []
+  private var collapsedVideoDirectoryKeys: Set<String> = []
   private var selectedFolderID: UUID?
   private var selectedDirectoryRelativePath: String?
   private var selectsStandaloneFolder = false
+  private var selectedVideoFolderID: UUID?
+  private var selectedVideoRelativePath: String?
+  private(set) var mode: SidebarMediaMode = .images
 
   private let titleLabel: UILabel = {
     let label = UILabel()
-    label.text = L("sidebar.title")
+    label.text = L("sidebar.library_title")
     label.textColor = .label
     label.font = .systemFont(ofSize: 24, weight: .bold)
     label.translatesAutoresizingMaskIntoConstraints = false
@@ -43,12 +81,29 @@ final class FolderSidebarView: UIView {
 
   private let subtitleLabel: UILabel = {
     let label = UILabel()
-    label.text = L("sidebar.subtitle")
+    label.text = L("sidebar.images_subtitle")
     label.textColor = .secondaryLabel
     label.font = .systemFont(ofSize: 13)
     label.numberOfLines = 0
     label.translatesAutoresizingMaskIntoConstraints = false
     return label
+  }()
+
+  private lazy var mediaControl: UISegmentedControl = {
+    let control = UISegmentedControl(
+      items: [
+        L("sidebar.images_tab"),
+        L("sidebar.videos_tab"),
+      ]
+    )
+    control.selectedSegmentIndex = mode.rawValue
+    control.addTarget(
+      self,
+      action: #selector(mediaControlChanged),
+      for: .valueChanged
+    )
+    control.translatesAutoresizingMaskIntoConstraints = false
+    return control
   }()
 
   private let closeButton: UIButton = {
@@ -85,6 +140,7 @@ final class FolderSidebarView: UIView {
     layer.shadowOffset = CGSize(width: 8, height: 0)
 
     addSubview(titleLabel)
+    addSubview(mediaControl)
     addSubview(subtitleLabel)
     addSubview(closeButton)
     addSubview(tableView)
@@ -132,6 +188,19 @@ final class FolderSidebarView: UIView {
       closeButton.widthAnchor.constraint(equalToConstant: 44),
       closeButton.heightAnchor.constraint(equalToConstant: 44),
 
+      mediaControl.leadingAnchor.constraint(
+        equalTo: titleLabel.leadingAnchor
+      ),
+      mediaControl.trailingAnchor.constraint(
+        equalTo: safeAreaLayoutGuide.trailingAnchor,
+        constant: -20
+      ),
+      mediaControl.topAnchor.constraint(
+        equalTo: titleLabel.bottomAnchor,
+        constant: 14
+      ),
+      mediaControl.heightAnchor.constraint(equalToConstant: 34),
+
       subtitleLabel.leadingAnchor.constraint(
         equalTo: titleLabel.leadingAnchor
       ),
@@ -140,8 +209,8 @@ final class FolderSidebarView: UIView {
         constant: -20
       ),
       subtitleLabel.topAnchor.constraint(
-        equalTo: titleLabel.bottomAnchor,
-        constant: 6
+        equalTo: mediaControl.bottomAnchor,
+        constant: 10
       ),
 
       tableView.leadingAnchor.constraint(equalTo: leadingAnchor),
@@ -182,11 +251,64 @@ final class FolderSidebarView: UIView {
     tableView.reloadData()
   }
 
+  func updateVideos(
+    items: [VideoSidebarItem],
+    selectedFolderID: UUID?,
+    selectedRelativePath: String?
+  ) {
+    videoItems = items
+    selectedVideoFolderID = selectedFolderID
+    selectedVideoRelativePath = selectedRelativePath
+    let availableKeys = Set(
+      items.compactMap { item in
+        item.kind == .folder
+          ? videoDirectoryKey(
+            folderID: item.folderID,
+            relativePath: item.relativePath
+          )
+          : nil
+      }
+    )
+    collapsedVideoDirectoryKeys.formIntersection(availableKeys)
+    tableView.reloadData()
+  }
+
+  func setMode(_ mode: SidebarMediaMode, notify: Bool = false) {
+    guard self.mode != mode else {
+      mediaControl.selectedSegmentIndex = mode.rawValue
+      updateModePresentation()
+      return
+    }
+    self.mode = mode
+    mediaControl.selectedSegmentIndex = mode.rawValue
+    updateModePresentation()
+    tableView.reloadData()
+    if notify {
+      delegate?.folderSidebar(self, didChangeMode: mode)
+    }
+  }
+
   @objc private func languageDidChange() {
-    titleLabel.text = L("sidebar.title")
-    subtitleLabel.text = L("sidebar.subtitle")
+    titleLabel.text = L("sidebar.library_title")
+    mediaControl.setTitle(L("sidebar.images_tab"), forSegmentAt: 0)
+    mediaControl.setTitle(L("sidebar.videos_tab"), forSegmentAt: 1)
+    updateModePresentation()
     closeButton.accessibilityLabel = L("sidebar.close")
     tableView.reloadData()
+  }
+
+  @objc private func mediaControlChanged() {
+    let nextMode =
+      SidebarMediaMode(rawValue: mediaControl.selectedSegmentIndex)
+      ?? .images
+    setMode(nextMode, notify: true)
+  }
+
+  private func updateModePresentation() {
+    subtitleLabel.text =
+      mode == .images
+      ? L("sidebar.images_subtitle")
+      : L("sidebar.videos_subtitle")
   }
 
   @objc private func closeButtonTapped() {
@@ -225,6 +347,67 @@ final class FolderSidebarView: UIView {
       }
       return !collapsedFolderIDs.contains(folderID)
     }
+  }
+
+  private var visibleVideoItems: [VideoSidebarItem] {
+    videoItems.filter { item in
+      videoAncestorDirectoryKeys(for: item).allSatisfy {
+        !collapsedVideoDirectoryKeys.contains($0)
+      }
+    }
+  }
+
+  private func isSelected(_ item: VideoSidebarItem) -> Bool {
+    item.kind == .video
+      && item.folderID == selectedVideoFolderID
+      && item.relativePath == selectedVideoRelativePath
+  }
+
+  private func videoDirectoryKey(
+    folderID: UUID,
+    relativePath: String?
+  ) -> String {
+    "\(folderID.uuidString)|\(relativePath ?? "")"
+  }
+
+  private func videoAncestorDirectoryKeys(
+    for item: VideoSidebarItem
+  ) -> [String] {
+    guard item.depth > 0 else { return [] }
+    var keys = [
+      videoDirectoryKey(
+        folderID: item.folderID,
+        relativePath: nil
+      )
+    ]
+    guard let relativePath = item.relativePath else { return keys }
+    let components = relativePath.split(separator: "/")
+    let directoryComponentCount = max(0, components.count - 1)
+    guard directoryComponentCount > 0 else { return keys }
+    for index in 1...directoryComponentCount {
+      keys.append(
+        videoDirectoryKey(
+          folderID: item.folderID,
+          relativePath: components.prefix(index)
+            .joined(separator: "/")
+        )
+      )
+    }
+    return keys
+  }
+
+  private func toggleVideoDirectory(_ item: VideoSidebarItem) {
+    guard item.kind == .folder else { return }
+    let key = videoDirectoryKey(
+      folderID: item.folderID,
+      relativePath: item.relativePath
+    )
+    if collapsedVideoDirectoryKeys.contains(key) {
+      collapsedVideoDirectoryKeys.remove(key)
+    } else {
+      collapsedVideoDirectoryKeys.insert(key)
+    }
+    tableView.reloadData()
   }
 
   private func toggleFolder(_ folderID: UUID) {
@@ -294,6 +477,36 @@ final class FolderSidebarView: UIView {
     return accessory
   }
 
+  private func videoDisclosureAccessory(
+    for item: VideoSidebarItem
+  ) -> UIView? {
+    guard item.kind == .folder, item.hasChildren else { return nil }
+    let key = videoDirectoryKey(
+      folderID: item.folderID,
+      relativePath: item.relativePath
+    )
+    let collapsed = collapsedVideoDirectoryKeys.contains(key)
+    var configuration = UIButton.Configuration.plain()
+    configuration.image = UIImage(
+      systemName: collapsed ? "chevron.right" : "chevron.down"
+    )
+    configuration.baseForegroundColor = .secondaryLabel
+    configuration.contentInsets = .zero
+    let button = UIButton(configuration: configuration)
+    button.accessibilityLabel = L(
+      collapsed ? "sidebar.expand" : "sidebar.collapse"
+    )
+    button.accessibilityValue = item.title
+    button.addAction(
+      UIAction { [weak self] _ in
+        self?.toggleVideoDirectory(item)
+      },
+      for: .touchUpInside
+    )
+    button.frame = CGRect(x: 0, y: 0, width: 32, height: 32)
+    return button
+  }
+
   #if DEBUG
     var visibleItemCountForTesting: Int {
       visibleItems.count
@@ -346,7 +559,9 @@ extension FolderSidebarView: UITableViewDataSource {
     _ tableView: UITableView,
     numberOfRowsInSection section: Int
   ) -> Int {
-    visibleItems.count
+    mode == .images
+      ? visibleItems.count
+      : visibleVideoItems.count
   }
 
   func tableView(
@@ -362,6 +577,18 @@ extension FolderSidebarView: UITableViewDataSource {
         style: .subtitle,
         reuseIdentifier: reuseIdentifier
       )
+    cell.accessoryView = nil
+    cell.accessoryType = .none
+    cell.accessibilityValue = nil
+
+    if mode == .videos {
+      configureVideoCell(
+        cell,
+        item: visibleVideoItems[indexPath.row]
+      )
+      return cell
+    }
+
     let item = visibleItems[indexPath.row]
     let selected = isSelected(item)
 
@@ -408,6 +635,56 @@ extension FolderSidebarView: UITableViewDataSource {
       selected ? L("sidebar.current") : nil
     return cell
   }
+
+  private func configureVideoCell(
+    _ cell: UITableViewCell,
+    item: VideoSidebarItem
+  ) {
+    let selected = isSelected(item)
+    var content = cell.defaultContentConfiguration()
+    content.image = UIImage(
+      systemName:
+        item.kind == .folder
+        ? "folder"
+        : selected ? "play.rectangle.fill" : "film"
+    )
+    content.imageProperties.tintColor =
+      selected ? .systemBlue : .secondaryLabel
+    content.text = item.title
+    content.directionalLayoutMargins.leading =
+      12 + CGFloat(item.depth) * 24
+    content.textProperties.font = .systemFont(
+      ofSize: 16,
+      weight: selected ? .semibold : .regular
+    )
+    if item.kind == .folder {
+      content.secondaryText = L(
+        "sidebar.video_count_format",
+        item.videoCount
+      )
+    } else {
+      content.secondaryText = L("sidebar.video_file")
+    }
+    content.secondaryTextProperties.color = .secondaryLabel
+    cell.contentConfiguration = content
+
+    var background = UIBackgroundConfiguration.listGroupedCell()
+    background.backgroundColor =
+      selected
+      ? UIColor.systemBlue.withAlphaComponent(0.14)
+      : .secondarySystemGroupedBackground
+    background.cornerRadius = 12
+    cell.backgroundConfiguration = background
+    cell.accessoryView = videoDisclosureAccessory(for: item)
+    cell.accessoryType =
+      selected && cell.accessoryView == nil ? .checkmark : .none
+    cell.tintColor = .systemBlue
+    cell.selectionStyle = .none
+    cell.isUserInteractionEnabled = true
+    cell.contentView.alpha = 1
+    cell.accessibilityValue =
+      selected ? L("sidebar.current_video") : nil
+  }
 }
 
 extension FolderSidebarView: UITableViewDelegate {
@@ -415,6 +692,16 @@ extension FolderSidebarView: UITableViewDelegate {
     _ tableView: UITableView,
     didSelectRowAt indexPath: IndexPath
   ) {
+    if mode == .videos {
+      let item = visibleVideoItems[indexPath.row]
+      if item.kind == .folder {
+        toggleVideoDirectory(item)
+      } else {
+        delegate?.folderSidebar(self, didSelectVideo: item)
+      }
+      return
+    }
+
     let item = visibleItems[indexPath.row]
     guard item.canSelect else { return }
     delegate?.folderSidebar(self, didSelect: item)
@@ -424,6 +711,31 @@ extension FolderSidebarView: UITableViewDelegate {
     _ tableView: UITableView,
     trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath
   ) -> UISwipeActionsConfiguration? {
+    if mode == .videos {
+      let item = visibleVideoItems[indexPath.row]
+      guard item.canDelete else { return nil }
+      let deleteAction = UIContextualAction(
+        style: .destructive,
+        title: L("common.delete")
+      ) { [weak self] _, _, completion in
+        guard let self else {
+          completion(false)
+          return
+        }
+        self.delegate?.folderSidebar(
+          self,
+          didRequestDeleteVideo: item
+        )
+        completion(true)
+      }
+      deleteAction.image = UIImage(systemName: "trash")
+      let configuration = UISwipeActionsConfiguration(
+        actions: [deleteAction]
+      )
+      configuration.performsFirstActionWithFullSwipe = false
+      return configuration
+    }
+
     let item = visibleItems[indexPath.row]
     guard item.canDelete else { return nil }
     let deleteAction = UIContextualAction(

@@ -1,9 +1,11 @@
 {
   "emptyTitle" : "No Image Folders Yet",
+  "imagesTab" : "Images",
   "language" : "en",
   "languageTitle" : "Language",
   "lockTitle" : "LongImageViewer Is Locked",
   "sortTitle" : "Image Sorting",
   "sourceButton" : "Sources",
-  "status" : "passed"
+  "status" : "passed",
+  "videosTab" : "Videos"
 }

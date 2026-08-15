@@ -22,6 +22,9 @@
 		B10000000000000000000013 /* AppLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000014 /* AppLocalization.swift */; };
 		B10000000000000000000014 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000009 /* Localizable.strings */; };
 		B10000000000000000000015 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = D10000000000000000000010 /* InfoPlist.strings */; };
+		B10000000000000000000016 /* VideoDocument.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000021 /* VideoDocument.swift */; };
+		B10000000000000000000017 /* VideoLibrary.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000022 /* VideoLibrary.swift */; };
+		B10000000000000000000018 /* VideoPlayerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A10000000000000000000023 /* VideoPlayerViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -45,6 +48,9 @@
 		A10000000000000000000018 /* en InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		A10000000000000000000019 /* zh-Hans InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		A10000000000000000000020 /* ja InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ja; path = ja.lproj/InfoPlist.strings; sourceTree = "<group>"; };
+		A10000000000000000000021 /* VideoDocument.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoDocument.swift; sourceTree = "<group>"; };
+		A10000000000000000000022 /* VideoLibrary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoLibrary.swift; sourceTree = "<group>"; };
+		A10000000000000000000023 /* VideoPlayerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoPlayerViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -86,6 +92,7 @@
 			isa = PBXGroup;
 			children = (
 				A10000000000000000000002 /* ImageDocument.swift */,
+				A10000000000000000000021 /* VideoDocument.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -97,6 +104,7 @@
 				A10000000000000000000004 /* ImagePipeline.swift */,
 				A10000000000000000000009 /* ProcessMemoryMonitor.swift */,
 				A10000000000000000000011 /* AppPasswordStore.swift */,
+				A10000000000000000000022 /* VideoLibrary.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -116,6 +124,7 @@
 				A10000000000000000000006 /* ViewerViewController.swift */,
 				A10000000000000000000012 /* AppLockViewController.swift */,
 				A10000000000000000000013 /* PasswordSettingsViewController.swift */,
+				A10000000000000000000023 /* VideoPlayerViewController.swift */,
 			);
 			path = ViewControllers;
 			sourceTree = "<group>";
@@ -221,6 +230,9 @@
 				B10000000000000000000011 /* AppLockViewController.swift in Sources */,
 				B10000000000000000000012 /* PasswordSettingsViewController.swift in Sources */,
 				B10000000000000000000013 /* AppLocalization.swift in Sources */,
+				B10000000000000000000016 /* VideoDocument.swift in Sources */,
+				B10000000000000000000017 /* VideoLibrary.swift in Sources */,
+				B10000000000000000000018 /* VideoPlayerViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

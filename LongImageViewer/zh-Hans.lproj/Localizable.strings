@@ -18,11 +18,15 @@
 "sort.clear_all" = "清空全部图片";
 
 "source.button" = "来源";
-"source.title" = "图片来源";
+"source.title" = "来源";
+"source.manage_library" = "打开媒体资料库";
 "source.manage_folders" = "管理已加载文件夹";
 "source.batch_add_folders" = "批量添加图片文件夹";
 "source.select_files" = "选择图片文件";
 "source.sync_folders" = "同步已添加文件夹";
+"source.add_video_folder" = "添加视频文件夹";
+"source.sync_video_folders" = "同步视频文件夹";
+"source.restore_hidden_videos" = "恢复隐藏的视频项目";
 "source.password_lock" = "密码与锁定";
 
 "empty.initial_title" = "还没有长图";
@@ -45,6 +49,8 @@
 
 "folder.status_available" = "可进入“我的 iPhone”、iCloud Drive，或 Mac 本地目录";
 "folder.status_added_format" = "已添加：%@";
+"folder.status_images_format" = "图片：%@";
+"folder.status_videos_format" = "视频：%@";
 "folder.manual_import" = "手动导入";
 "folder.generic" = "图片文件夹";
 "folder.sync_complete" = "文件夹同步完成";
@@ -56,9 +62,17 @@
 
 "sidebar.title" = "图片文件夹";
 "sidebar.subtitle" = "连续浏览根目录及其直属子目录中的图片";
+"sidebar.library_title" = "媒体资料库";
+"sidebar.images_tab" = "图片浏览";
+"sidebar.videos_tab" = "视频播放";
+"sidebar.images_subtitle" = "连续浏览图片根目录及其直属子目录";
+"sidebar.videos_subtitle" = "点击视频文件播放；点击目录展开或折叠";
 "sidebar.close" = "关闭文件夹侧边栏";
 "sidebar.image_count_format" = "%d 张图片";
+"sidebar.video_count_format" = "%d 个视频";
+"sidebar.video_file" = "视频文件";
 "sidebar.current" = "当前文件夹";
+"sidebar.current_video" = "当前视频";
 "sidebar.expand" = "展开二级目录";
 "sidebar.collapse" = "折叠二级目录";
 
@@ -76,6 +90,21 @@
 "collection.remove_folder_message" = "将移除该文件夹及其缓存，不会删除源目录中的图片。";
 "collection.remove_title_format" = "移除“%@”？";
 "import.partial_failed" = "部分图片未导入";
+
+"video.error.no_folders" = "还没有添加视频文件夹";
+"video.error.folder_access_format" = "无法访问视频文件夹：%@";
+"video.error.unavailable_format" = "视频已不可用：%@";
+"video.folder_added" = "视频文件夹已添加";
+"video.sync_complete" = "视频文件夹同步完成";
+"video.restore_complete" = "已恢复隐藏的视频项目";
+"video.sync_added_format" = "新增 %d 个视频";
+"video.sync_updated_format" = "更新 %d 个视频";
+"video.sync_removed_format" = "移除 %d 个视频";
+"video.remove_root_message" = "将从 App 中移除目录关联和视频索引，不会删除系统文件中的源文件。";
+"video.hide_folder_message" = "将在 App 中隐藏该目录及其中视频，不会删除源文件。可通过“恢复隐藏的视频项目”重新关联。";
+"video.hide_file_message" = "将在 App 中隐藏该视频，不会删除源文件。可通过“恢复隐藏的视频项目”重新关联。";
+"video.playback_failed" = "无法播放视频";
+"video.playback_unsupported" = "当前设备不支持该视频容器或编码格式。";
 
 "memory.unavailable" = "内存 --";
 "memory.format" = "内存 %.0f MB";

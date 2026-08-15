@@ -1,9 +1,11 @@
 {
   "emptyTitle" : "还没有图片文件夹",
+  "imagesTab" : "图片浏览",
   "language" : "zh-Hans",
   "languageTitle" : "语言",
   "lockTitle" : "长图阅览已锁定",
   "sortTitle" : "图片排序",
   "sourceButton" : "来源",
-  "status" : "passed"
+  "status" : "passed",
+  "videosTab" : "视频播放"
 }

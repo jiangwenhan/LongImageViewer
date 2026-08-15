@@ -6,16 +6,19 @@ final class ViewerViewController: UIViewController {
 
   private enum PickerMode {
     case images
-    case folder
+    case imageFolder
+    case videoFolder
   }
 
   private enum SelectionStorage {
     static let folderKey = "selectedFolderID"
     static let standaloneValue = "__standalone__"
+    static let sidebarModeKey = "sidebarMediaMode"
   }
 
   private let tileOverlap = 1 / UIScreen.main.scale
   private let library = ImageLibrary.shared
+  private let videoLibrary = VideoLibrary.shared
   private var documents: [ImageDocument] = []
   private var displayTiles: [DisplayTile] = []
   private var pageStartOffsets: [CGFloat] = []
@@ -24,6 +27,7 @@ final class ViewerViewController: UIViewController {
   private var pickerMode = PickerMode.images
   private var memoryTimer: Timer?
   private var isSynchronizingFolders = false
+  private var isSynchronizingVideoFolders = false
   private var prefetchRequests: [IndexPath: ImageRequestToken] = [:]
   private var selectedFolderID: UUID?
   private var selectsStandaloneFolder = false
@@ -31,9 +35,18 @@ final class ViewerViewController: UIViewController {
   private var isSelectingFolderBatch = false
   private var isSidebarVisible = false
   private var sidebarWidthConstraint: NSLayoutConstraint?
+  private var sidebarMode =
+    SidebarMediaMode(
+      rawValue: UserDefaults.standard.integer(
+        forKey: SelectionStorage.sidebarModeKey
+      )
+    ) ?? .images
+  private var selectedVideoFolderID: UUID?
+  private var selectedVideoRelativePath: String?
 
   #if DEBUG
     private var didProcessSimulatorFixtures = false
+    private var didProcessSimulatorVideoFixtures = false
     private var smokeTestDisplayLink: CADisplayLink?
     private var smokeTestStartTime: CFTimeInterval = 0
     private var smokeTestLastFrameTime: CFTimeInterval = 0
@@ -280,6 +293,7 @@ final class ViewerViewController: UIViewController {
 
     #if DEBUG
       importSimulatorFixturesIfRequested()
+      importSimulatorVideoFixturesIfRequested()
       handleDebugSidebarArgumentsIfNeeded()
       reportLocalizationStateIfRequested()
       runLanguageSwitchSmokeTestIfRequested()
@@ -572,16 +586,14 @@ final class ViewerViewController: UIViewController {
       message: folderStatusMessage,
       preferredStyle: .actionSheet
     )
-    if !sidebarItems.isEmpty {
-      sheet.addAction(
-        UIAlertAction(
-          title: L("source.manage_folders"),
-          style: .default
-        ) { [weak self] _ in
-          self?.showFolderSidebar()
-        }
-      )
-    }
+    sheet.addAction(
+      UIAlertAction(
+        title: L("source.manage_library"),
+        style: .default
+      ) { [weak self] _ in
+        self?.showFolderSidebar()
+      }
+    )
     sheet.addAction(
       UIAlertAction(
         title: L("source.batch_add_folders"),
@@ -606,6 +618,34 @@ final class ViewerViewController: UIViewController {
         self?.syncFolders(showResult: true)
       }
     )
+    sheet.addAction(
+      UIAlertAction(
+        title: L("source.add_video_folder"),
+        style: .default
+      ) { [weak self] _ in
+        self?.presentVideoFolderPicker()
+      }
+    )
+    if !videoLibrary.folders.isEmpty {
+      sheet.addAction(
+        UIAlertAction(
+          title: L("source.sync_video_folders"),
+          style: .default
+        ) { [weak self] _ in
+          self?.syncVideoFolders(showResult: true)
+        }
+      )
+    }
+    if videoLibrary.hasHiddenItems {
+      sheet.addAction(
+        UIAlertAction(
+          title: L("source.restore_hidden_videos"),
+          style: .default
+        ) { [weak self] _ in
+          self?.restoreHiddenVideoItems()
+        }
+      )
+    }
     sheet.addAction(
       UIAlertAction(
         title: L("source.password_lock"),
@@ -707,7 +747,7 @@ final class ViewerViewController: UIViewController {
   }
 
   private func presentFolderPicker() {
-    pickerMode = .folder
+    pickerMode = .imageFolder
     let picker = UIDocumentPickerViewController(
       forOpeningContentTypes: [.folder],
       asCopy: false
@@ -717,6 +757,22 @@ final class ViewerViewController: UIViewController {
     #else
       picker.allowsMultipleSelection = false
     #endif
+    picker.delegate = self
+    picker.directoryURL =
+      FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      ).first
+    present(picker, animated: true)
+  }
+
+  private func presentVideoFolderPicker() {
+    pickerMode = .videoFolder
+    let picker = UIDocumentPickerViewController(
+      forOpeningContentTypes: [.folder],
+      asCopy: false
+    )
+    picker.allowsMultipleSelection = false
     picker.delegate = self
     picker.directoryURL =
       FileManager.default.urls(
@@ -824,15 +880,29 @@ final class ViewerViewController: UIViewController {
   }
 
   private var folderStatusMessage: String {
-    guard !library.folderDisplayNames.isEmpty else {
+    let imageNames = library.folderDisplayNames
+    let videoNames = videoLibrary.folderDisplayNames
+    guard !imageNames.isEmpty || !videoNames.isEmpty else {
       return L("folder.status_available")
     }
-    return L(
-      "folder.status_added_format",
-      library.folderDisplayNames.joined(
-        separator: L("common.list_separator")
+    var lines: [String] = []
+    if !imageNames.isEmpty {
+      lines.append(
+        L(
+          "folder.status_images_format",
+          imageNames.joined(separator: L("common.list_separator"))
+        )
       )
-    )
+    }
+    if !videoNames.isEmpty {
+      lines.append(
+        L(
+          "folder.status_videos_format",
+          videoNames.joined(separator: L("common.list_separator"))
+        )
+      )
+    }
+    return lines.joined(separator: "\n")
   }
 
   private var sidebarItems: [FolderSidebarItem] {
@@ -873,6 +943,121 @@ final class ViewerViewController: UIViewController {
       )
     }
     return items
+  }
+
+  private var videoSidebarItems: [VideoSidebarItem] {
+    var items: [VideoSidebarItem] = []
+    for folder in videoLibrary.folders {
+      let videos = videoLibrary.videos(in: folder.id)
+      items.append(
+        VideoSidebarItem(
+          folderID: folder.id,
+          relativePath: nil,
+          title: folder.displayName,
+          videoCount: videos.count,
+          depth: 0,
+          kind: .folder,
+          hasChildren: !videos.isEmpty,
+          canDelete: true
+        )
+      )
+      appendVideoItems(
+        to: &items,
+        folderID: folder.id,
+        directoryRelativePath: nil,
+        depth: 1,
+        videos: videos
+      )
+    }
+    return items
+  }
+
+  private func appendVideoItems(
+    to items: inout [VideoSidebarItem],
+    folderID: UUID,
+    directoryRelativePath: String?,
+    depth: Int,
+    videos: [VideoDocument]
+  ) {
+    let directVideos = videos.filter {
+      $0.directoryRelativePath == directoryRelativePath
+    }.sorted {
+      $0.filename.localizedStandardCompare($1.filename)
+        == .orderedAscending
+    }
+    for video in directVideos {
+      items.append(
+        VideoSidebarItem(
+          folderID: folderID,
+          relativePath: video.relativePath,
+          title: video.filename,
+          videoCount: 0,
+          depth: depth,
+          kind: .video,
+          hasChildren: false,
+          canDelete: true
+        )
+      )
+    }
+
+    let childDirectories = immediateChildDirectories(
+      below: directoryRelativePath,
+      videos: videos
+    )
+    for childDirectory in childDirectories {
+      let descendantCount = videos.lazy.filter {
+        $0.directoryRelativePath == childDirectory
+          || $0.directoryRelativePath?.hasPrefix(
+            childDirectory + "/"
+          ) == true
+      }.count
+      items.append(
+        VideoSidebarItem(
+          folderID: folderID,
+          relativePath: childDirectory,
+          title:
+            childDirectory.split(separator: "/").last.map(String.init)
+            ?? childDirectory,
+          videoCount: descendantCount,
+          depth: depth,
+          kind: .folder,
+          hasChildren: descendantCount > 0,
+          canDelete: true
+        )
+      )
+      appendVideoItems(
+        to: &items,
+        folderID: folderID,
+        directoryRelativePath: childDirectory,
+        depth: depth + 1,
+        videos: videos
+      )
+    }
+  }
+
+  private func immediateChildDirectories(
+    below parent: String?,
+    videos: [VideoDocument]
+  ) -> [String] {
+    let parentComponents = parent?.split(separator: "/") ?? []
+    let children = videos.compactMap { video -> String? in
+      guard let directory = video.directoryRelativePath else {
+        return nil
+      }
+      let components = directory.split(separator: "/")
+      guard
+        components.count > parentComponents.count,
+        Array(components.prefix(parentComponents.count))
+          == Array(parentComponents)
+      else {
+        return nil
+      }
+      return components.prefix(parentComponents.count + 1)
+        .joined(separator: "/")
+    }
+    return Array(Set(children)).sorted {
+      $0.localizedStandardCompare($1) == .orderedAscending
+    }
   }
 
   private func restoreFolderSelection() {
@@ -948,6 +1133,12 @@ final class ViewerViewController: UIViewController {
         currentDirectoryRelativePath,
       selectsStandaloneFolder: selectsStandaloneFolder
     )
+    folderSidebarView.updateVideos(
+      items: videoSidebarItems,
+      selectedFolderID: selectedVideoFolderID,
+      selectedRelativePath: selectedVideoRelativePath
+    )
+    folderSidebarView.setMode(sidebarMode)
   }
 
   private var currentDirectoryRelativePath: String? {
@@ -983,9 +1174,7 @@ final class ViewerViewController: UIViewController {
 
   private func showFolderSidebar() {
     updateFolderSidebar()
-    guard !sidebarItems.isEmpty, !isSidebarVisible else {
-      return
-    }
+    guard !isSidebarVisible else { return }
     isSidebarVisible = true
     sidebarDimmingView.isHidden = false
     view.layoutIfNeeded()
@@ -1071,8 +1260,12 @@ final class ViewerViewController: UIViewController {
   }
 
   @objc private func applicationDidBecomeActive() {
-    guard !library.folders.isEmpty else { return }
-    syncFolders(showResult: false)
+    if !library.folders.isEmpty {
+      syncFolders(showResult: false)
+    }
+    if !videoLibrary.folders.isEmpty {
+      syncVideoFolders(showResult: false)
+    }
   }
 
   private func syncFolders(showResult: Bool) {
@@ -1154,6 +1347,118 @@ final class ViewerViewController: UIViewController {
       UIAlertAction(title: L("common.ok"), style: .default)
     )
     present(alert, animated: true)
+  }
+
+  private func syncVideoFolders(showResult: Bool) {
+    guard
+      !videoLibrary.folders.isEmpty,
+      !isSynchronizingVideoFolders
+    else {
+      return
+    }
+    isSynchronizingVideoFolders = true
+    if showResult {
+      setImporting(true)
+    }
+    videoLibrary.syncFolders { [weak self] result in
+      guard let self else { return }
+      self.isSynchronizingVideoFolders = false
+      if showResult {
+        self.setImporting(false)
+      }
+      switch result {
+      case .success(let summary):
+        self.updateFolderSidebar()
+        if showResult {
+          self.presentVideoSyncSummary(
+            summary,
+            title: L("video.sync_complete")
+          )
+        }
+      case .failure(let error):
+        if showResult {
+          self.presentError(error)
+        }
+      }
+    }
+  }
+
+  private func restoreHiddenVideoItems() {
+    setImporting(true)
+    videoLibrary.restoreHiddenItems { [weak self] result in
+      guard let self else { return }
+      self.setImporting(false)
+      switch result {
+      case .success(let summary):
+        self.updateFolderSidebar()
+        self.presentVideoSyncSummary(
+          summary,
+          title: L("video.restore_complete")
+        )
+      case .failure(let error):
+        self.presentError(error)
+      }
+    }
+  }
+
+  private func presentVideoSyncSummary(
+    _ summary: VideoSyncSummary,
+    title: String
+  ) {
+    var lines = [
+      L("video.sync_added_format", summary.addedCount),
+      L("video.sync_updated_format", summary.updatedCount),
+      L("video.sync_removed_format", summary.removedCount),
+    ]
+    if !summary.unavailableFolders.isEmpty {
+      lines.append(
+        L(
+          "folder.sync_unavailable_format",
+          summary.unavailableFolders.joined(
+            separator: L("common.list_separator")
+          )
+        )
+      )
+    }
+    let alert = UIAlertController(
+      title: title,
+      message: lines.joined(separator: "\n"),
+      preferredStyle: .alert
+    )
+    alert.addAction(
+      UIAlertAction(title: L("common.ok"), style: .default)
+    )
+    present(alert, animated: true)
+  }
+
+  private func playVideo(_ item: VideoSidebarItem) {
+    guard
+      item.kind == .video,
+      let relativePath = item.relativePath,
+      let video = videoLibrary.videos.first(
+        where: {
+          $0.sourceFolderID == item.folderID
+            && $0.relativePath == relativePath
+        }
+      )
+    else {
+      return
+    }
+
+    do {
+      let access = try videoLibrary.playbackAccess(for: video)
+      selectedVideoFolderID = item.folderID
+      selectedVideoRelativePath = relativePath
+      updateFolderSidebar()
+      hideFolderSidebar()
+      let player = VideoPlayerViewController(
+        playbackAccess: access,
+        title: video.filename
+      )
+      present(player, animated: true)
+    } catch {
+      presentError(error)
+    }
   }
 
   private func applySort(_ option: ImageSortOption) {
@@ -1368,6 +1673,8 @@ final class ViewerViewController: UIViewController {
         "sourceButton": addButton.configuration?.title ?? "",
         "emptyTitle": L("empty.no_folders"),
         "sortTitle": L("sort.title"),
+        "imagesTab": L("sidebar.images_tab"),
+        "videosTab": L("sidebar.videos_tab"),
         "languageTitle": L("language.title"),
         "lockTitle": L("lock.title"),
       ]
@@ -1401,11 +1708,13 @@ final class ViewerViewController: UIViewController {
       let originalLanguage = AppLocalization.shared.language
       var sourceButtonTitles: [String: String] = [:]
       var sortMenuTitles: [String: String] = [:]
+      var videoTabTitles: [String: String] = [:]
       for language in AppLanguage.allCases {
         AppLocalization.shared.setLanguage(language)
         sourceButtonTitles[language.rawValue] =
           addButton.configuration?.title ?? ""
         sortMenuTitles[language.rawValue] = sortButton.menu?.title ?? ""
+        videoTabTitles[language.rawValue] = L("sidebar.videos_tab")
       }
       AppLocalization.shared.setLanguage(originalLanguage)
 
@@ -1413,10 +1722,12 @@ final class ViewerViewController: UIViewController {
         sourceButtonTitles.values.filter { !$0.isEmpty }.count == 3
         && Set(sourceButtonTitles.values).count == 3
         && Set(sortMenuTitles.values).count == 3
+        && Set(videoTabTitles.values).count == 3
       let result: [String: Any] = [
         "status": passed ? "passed" : "failed",
         "sourceButtonTitles": sourceButtonTitles,
         "sortMenuTitles": sortMenuTitles,
+        "videoTabTitles": videoTabTitles,
       ]
       let documentsURL = FileManager.default.urls(
         for: .documentDirectory,
@@ -1460,6 +1771,11 @@ final class ViewerViewController: UIViewController {
 
         switch result {
         case .success:
+          self.sidebarMode = .images
+          UserDefaults.standard.set(
+            SidebarMediaMode.images.rawValue,
+            forKey: SelectionStorage.sidebarModeKey
+          )
           self.selectPrimaryFixtureFolder(fixtureDirectories)
           self.reloadLibrary(preservingPage: false)
           self.scheduleSmokeTestIfRequested()
@@ -1470,6 +1786,315 @@ final class ViewerViewController: UIViewController {
           ])
         }
       }
+    }
+
+    private func importSimulatorVideoFixturesIfRequested() {
+      let arguments = ProcessInfo.processInfo.arguments
+      guard
+        arguments.contains("--import-simulator-video-fixtures"),
+        !didProcessSimulatorVideoFixtures
+      else {
+        return
+      }
+      didProcessSimulatorVideoFixtures = true
+      let fixtureURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0].appendingPathComponent(
+        "SimulatorVideoFixtures",
+        isDirectory: true
+      )
+
+      videoLibrary.addFolder(from: fixtureURL) {
+        [weak self] result in
+        guard let self else { return }
+        switch result {
+        case .success:
+          self.sidebarMode = .videos
+          UserDefaults.standard.set(
+            SidebarMediaMode.videos.rawValue,
+            forKey: SelectionStorage.sidebarModeKey
+          )
+          self.updateFolderSidebar()
+          if arguments.contains("--video-library-smoke-test") {
+            self.runVideoLibrarySmokeTest(fixtureURL: fixtureURL)
+          } else if arguments.contains("--show-video-sidebar") {
+            DispatchQueue.main.asyncAfter(
+              deadline: .now() + 0.3
+            ) { [weak self] in
+              self?.showFolderSidebar()
+            }
+          }
+        case .failure(let error):
+          self.writeVideoLibraryResult([
+            "status": "import-failed",
+            "error": error.localizedDescription,
+          ])
+        }
+      }
+    }
+
+    private func runVideoLibrarySmokeTest(fixtureURL: URL) {
+      let initialVideos = videoLibrary.videos
+      let initialItems = videoSidebarItems
+      guard
+        initialVideos.count == 4,
+        let fileToHide = initialVideos.first(
+          where: { $0.relativePath == "root_clip.mp4" }
+        ),
+        let directoryToHide = initialItems.first(
+          where: {
+            $0.kind == .folder
+              && $0.relativePath == "Level_1"
+          }
+        )
+      else {
+        writeVideoLibraryResult([
+          "status": "fixture-validation-failed",
+          "videoCount": initialVideos.count,
+          "sidebarItemCount": initialItems.count,
+        ])
+        return
+      }
+
+      let fileSourceURL = fixtureURL.appendingPathComponent(
+        fileToHide.relativePath
+      )
+      let directorySourceURL = fixtureURL.appendingPathComponent(
+        directoryToHide.relativePath ?? "",
+        isDirectory: true
+      )
+      videoLibrary.hideItem(
+        folderID: fileToHide.sourceFolderID,
+        relativePath: fileToHide.relativePath,
+        isDirectory: false
+      ) { [weak self] hideFileResult in
+        guard
+          let self,
+          case .success = hideFileResult
+        else {
+          self?.writeVideoLibraryResult([
+            "status": "hide-file-failed"
+          ])
+          return
+        }
+        let fileHidden = self.videoLibrary.videos.count == 3
+          && FileManager.default.fileExists(atPath: fileSourceURL.path)
+          && self.videoLibrary.hasHiddenItems
+
+        self.videoLibrary.restoreHiddenItems {
+          [weak self] restoreFileResult in
+          guard
+            let self,
+            case .success = restoreFileResult
+          else {
+            self?.writeVideoLibraryResult([
+              "status": "restore-file-failed"
+            ])
+            return
+          }
+          self.videoLibrary.hideItem(
+            folderID: directoryToHide.folderID,
+            relativePath: directoryToHide.relativePath ?? "",
+            isDirectory: true
+          ) { [weak self] hideDirectoryResult in
+            guard
+              let self,
+              case .success = hideDirectoryResult
+            else {
+              self?.writeVideoLibraryResult([
+                "status": "hide-directory-failed"
+              ])
+              return
+            }
+            let directoryHidden =
+              self.videoLibrary.videos.count == 2
+              && FileManager.default.fileExists(
+                atPath: directorySourceURL.path
+              )
+
+            self.videoLibrary.restoreHiddenItems {
+              [weak self] restoreDirectoryResult in
+              guard
+                let self,
+                case .success = restoreDirectoryResult,
+                let folderID = self.videoLibrary.folderID(
+                  for: fixtureURL
+                )
+              else {
+                self?.writeVideoLibraryResult([
+                  "status": "restore-directory-failed"
+                ])
+                return
+              }
+              self.videoLibrary.removeFolder(folderID) {
+                [weak self] removeResult in
+                guard
+                  let self,
+                  case .success = removeResult
+                else {
+                  self?.writeVideoLibraryResult([
+                    "status": "remove-association-failed"
+                  ])
+                  return
+                }
+                let associationRemoved =
+                  self.videoLibrary.folders.isEmpty
+                  && self.videoLibrary.videos.isEmpty
+                  && FileManager.default.fileExists(
+                    atPath: fixtureURL.path
+                  )
+                self.videoLibrary.addFolder(from: fixtureURL) {
+                  [weak self] relinkResult in
+                  guard
+                    let self,
+                    case .success = relinkResult
+                  else {
+                    self?.writeVideoLibraryResult([
+                      "status": "relink-failed"
+                    ])
+                    return
+                  }
+                  self.finishVideoLibrarySmokeTest(
+                    fixtureURL: fixtureURL,
+                    initialItems: initialItems,
+                    fileHidden: fileHidden,
+                    directoryHidden: directoryHidden,
+                    associationRemoved: associationRemoved
+                  )
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    private func finishVideoLibrarySmokeTest(
+      fixtureURL: URL,
+      initialItems: [VideoSidebarItem],
+      fileHidden: Bool,
+      directoryHidden: Bool,
+      associationRemoved: Bool
+    ) {
+      let relinkedVideos = videoLibrary.videos
+      let relinkedItems = videoSidebarItems
+      guard
+        let videoItem = relinkedItems.first(
+          where: {
+            $0.kind == .video
+              && $0.relativePath == "root_clip.mp4"
+          }
+        )
+      else {
+        writeVideoLibraryResult([
+          "status": "relinked-video-not-found"
+        ])
+        return
+      }
+
+      playVideo(videoItem)
+      DispatchQueue.main.asyncAfter(
+        deadline: .now() + 0.8
+      ) { [weak self] in
+        guard
+          let self,
+          let playerController =
+            self.presentedViewController
+              as? VideoPlayerViewController
+        else {
+          self?.writeVideoLibraryResult([
+            "status": "player-not-presented"
+          ])
+          return
+        }
+        let rateBeforePause = playerController.player?.rate ?? 0
+        NotificationCenter.default.post(
+          name: UIApplication.willResignActiveNotification,
+          object: nil
+        )
+        DispatchQueue.main.asyncAfter(
+          deadline: .now() + 0.2
+        ) { [weak self, weak playerController] in
+          guard let self else { return }
+          let rateAfterPause =
+            playerController?.player?.rate ?? -1
+          let extensions = Set(
+            relinkedVideos.map {
+              URL(fileURLWithPath: $0.filename)
+                .pathExtension.lowercased()
+            }
+          ).sorted()
+          let directoryPaths = Set(
+            relinkedVideos.compactMap(\.directoryRelativePath)
+          ).sorted()
+          let sourceFilesStillExist =
+            [
+              "root_clip.mp4",
+              "Level_1/child_clip.mov",
+              "Level_1/Level_2/deep_clip.m4v",
+              "Sibling/sibling_clip.ts",
+            ].allSatisfy {
+              FileManager.default.fileExists(
+                atPath: fixtureURL.appendingPathComponent($0).path
+              )
+            }
+          let passed =
+            fileHidden
+            && directoryHidden
+            && associationRemoved
+            && relinkedVideos.count == 4
+            && extensions == ["m4v", "mov", "mp4", "ts"]
+            && directoryPaths
+              == ["Level_1", "Level_1/Level_2", "Sibling"]
+            && initialItems.filter { $0.kind == .video }.count == 4
+            && initialItems.filter { $0.kind == .folder }.count == 4
+            && sourceFilesStillExist
+            && rateBeforePause > 0
+            && rateAfterPause == 0
+          self.writeVideoLibraryResult([
+            "status": passed ? "passed" : "failed",
+            "videoCount": relinkedVideos.count,
+            "sidebarItemCount": relinkedItems.count,
+            "videoRowCount":
+              relinkedItems.filter { $0.kind == .video }.count,
+            "folderRowCount":
+              relinkedItems.filter { $0.kind == .folder }.count,
+            "maximumDepth":
+              relinkedItems.map(\.depth).max() ?? 0,
+            "formats": extensions,
+            "directoryPaths": directoryPaths,
+            "fileHiddenWithoutDeletion": fileHidden,
+            "directoryHiddenWithoutDeletion": directoryHidden,
+            "associationRemovedWithoutDeletion":
+              associationRemoved,
+            "sourceFilesStillExist": sourceFilesStillExist,
+            "rateBeforeBackgroundPause": rateBeforePause,
+            "rateAfterBackgroundPause": rateAfterPause,
+          ])
+        }
+      }
+    }
+
+    private func writeVideoLibraryResult(
+      _ result: [String: Any]
+    ) {
+      let documentsURL = FileManager.default.urls(
+        for: .documentDirectory,
+        in: .userDomainMask
+      )[0]
+      let resultURL = documentsURL.appendingPathComponent(
+        "video-library-result.json"
+      )
+      guard
+        let data = try? JSONSerialization.data(
+          withJSONObject: result,
+          options: [.prettyPrinted, .sortedKeys]
+        )
+      else {
+        return
+      }
+      try? data.write(to: resultURL, options: .atomic)
     }
 
     private func simulatorFixtureDirectories(
@@ -2104,11 +2729,7 @@ extension ViewerViewController: FolderSidebarViewDelegate {
             }
             ImagePipeline.shared.clearCache()
             self.reloadLibrary(preservingPage: false)
-            if self.sidebarItems.isEmpty {
-              self.hideFolderSidebar()
-            } else {
-              self.updateFolderSidebar()
-            }
+            self.updateFolderSidebar()
           case .failure(let error):
             self.presentError(error)
           }
@@ -2116,6 +2737,103 @@ extension ViewerViewController: FolderSidebarViewDelegate {
       }
     )
     present(alert, animated: true)
+  }
+
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didChangeMode mode: SidebarMediaMode
+  ) {
+    sidebarMode = mode
+    UserDefaults.standard.set(
+      mode.rawValue,
+      forKey: SelectionStorage.sidebarModeKey
+    )
+  }
+
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didSelectVideo item: VideoSidebarItem
+  ) {
+    playVideo(item)
+  }
+
+  func folderSidebar(
+    _ sidebar: FolderSidebarView,
+    didRequestDeleteVideo item: VideoSidebarItem
+  ) {
+    let isRoot = item.kind == .folder && item.relativePath == nil
+    let message =
+      isRoot
+      ? L("video.remove_root_message")
+      : item.kind == .folder
+        ? L("video.hide_folder_message")
+        : L("video.hide_file_message")
+    let alert = UIAlertController(
+      title: L("collection.remove_title_format", item.title),
+      message: message,
+      preferredStyle: .alert
+    )
+    alert.addAction(
+      UIAlertAction(title: L("common.cancel"), style: .cancel)
+    )
+    alert.addAction(
+      UIAlertAction(title: L("common.remove"), style: .destructive) {
+        [weak self] _ in
+        guard let self else { return }
+        let completion: (Result<Void, Error>) -> Void = {
+          [weak self] result in
+          guard let self else { return }
+          switch result {
+          case .success:
+            if
+              self.selectedVideoFolderID == item.folderID,
+              isRoot
+                || self.videoItem(
+                  item,
+                  contains: self.selectedVideoRelativePath
+                )
+            {
+              self.selectedVideoFolderID = nil
+              self.selectedVideoRelativePath = nil
+            }
+            self.updateFolderSidebar()
+          case .failure(let error):
+            self.presentError(error)
+          }
+        }
+        if isRoot {
+          self.videoLibrary.removeFolder(
+            item.folderID,
+            completion: completion
+          )
+        } else if let relativePath = item.relativePath {
+          self.videoLibrary.hideItem(
+            folderID: item.folderID,
+            relativePath: relativePath,
+            isDirectory: item.kind == .folder,
+            completion: completion
+          )
+        }
+      }
+    )
+    present(alert, animated: true)
+  }
+
+  private func videoItem(
+    _ item: VideoSidebarItem,
+    contains selectedRelativePath: String?
+  ) -> Bool {
+    guard
+      let itemPath = item.relativePath,
+      let selectedRelativePath
+    else {
+      return false
+    }
+    if item.kind == .video {
+      return itemPath == selectedRelativePath
+    }
+    return selectedRelativePath == itemPath
+      || selectedRelativePath.hasPrefix(itemPath + "/")
   }
 
   func folderSidebarDidRequestClose(_ sidebar: FolderSidebarView) {
@@ -2173,12 +2891,39 @@ extension ViewerViewController: UIDocumentPickerDelegate {
   ) {
     guard !urls.isEmpty else { return }
 
-    if pickerMode == .folder {
+    if pickerMode == .imageFolder {
       appendPendingFolders(urls)
       DispatchQueue.main.asyncAfter(
         deadline: .now() + 0.25
       ) { [weak self] in
         self?.presentFolderBatchProgress()
+      }
+      return
+    }
+
+    if pickerMode == .videoFolder {
+      guard let folderURL = urls.first else { return }
+      setImporting(true)
+      videoLibrary.addFolder(from: folderURL) {
+        [weak self] result in
+        guard let self else { return }
+        self.setImporting(false)
+        switch result {
+        case .success(let summary):
+          self.sidebarMode = .videos
+          UserDefaults.standard.set(
+            SidebarMediaMode.videos.rawValue,
+            forKey: SelectionStorage.sidebarModeKey
+          )
+          self.updateFolderSidebar()
+          self.showFolderSidebar()
+          self.presentVideoSyncSummary(
+            summary,
+            title: L("video.folder_added")
+          )
+        case .failure(let error):
+          self.presentError(error)
+        }
       }
       return
     }
@@ -2227,7 +2972,7 @@ extension ViewerViewController: UIDocumentPickerDelegate {
     _ controller: UIDocumentPickerViewController
   ) {
     guard
-      pickerMode == .folder,
+      pickerMode == .imageFolder,
       isSelectingFolderBatch
     else {
       return

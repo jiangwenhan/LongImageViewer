@@ -1,5 +1,5 @@
 {
-  "averageFPS" : 60,
+  "averageFPS" : 59.799999999999997,
   "contentHeight" : 15638,
   "directoryCount" : 3,
   "directoryOrder" : [
@@ -31,18 +31,18 @@
       "relativePath" : "03_Empty_Chapter"
     }
   ],
-  "directorySyncDurationSeconds" : 0.16,
+  "directorySyncDurationSeconds" : 0.089999999999999997,
   "documentCount" : 5,
   "durationSeconds" : 18.010000000000002,
   "expectedTileCount" : 29,
   "finalMaterializedTileCount" : 29,
   "folderCount" : 2,
-  "frameCount" : 1081,
+  "frameCount" : 1077,
   "initialMaterializedTileCount" : 29,
-  "peakMemoryBytes" : 107809888,
+  "peakMemoryBytes" : 108137544,
   "selectedFolderTitle" : "SimulatorFixtures",
   "sidebarItemCount" : 5,
-  "slowFrameCount" : 0,
+  "slowFrameCount" : 1,
   "sortOrders" : {
     "creationAscending" : [
       "02_phone_medium_1284x5000.jpg",
@@ -74,6 +74,6 @@
     ]
   },
   "status" : "passed",
-  "usedMemoryBytes" : 85740616,
+  "usedMemoryBytes" : 88312880,
   "visitedPageCount" : 5
 }
